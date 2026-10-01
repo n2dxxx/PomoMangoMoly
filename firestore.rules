@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Chỉ chủ tài khoản đọc/ghi được dữ liệu của chính mình,
+    // và chỉ email trong danh sách dưới đây mới dùng được app.
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.email in ['EMAIL_CUA_BAN@gmail.com'];
+    }
+  }
+}

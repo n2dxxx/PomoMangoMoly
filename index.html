@@ -1,0 +1,1867 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Phiên Làm Việc</title>
+<meta name="theme-color" content="#E8601C">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: bàn làm việc hai cột — trái là đồng hồ + hộp ghi nhanh (cố định khi cuộn), phải là danh sách việc / ghi chú / thống kê theo tab. Điện thoại: xếp một cột. */
+:root{
+  --paper:#F4F2F0; --surface:#FFFFFF; --sunk:#F6F4F2; --ink:#17120F; --muted:#746B64; --line:#EAE5E1;
+  --accent:#E8601C; --accent-soft:#FDEBDD; --accent-ink:#B0430D; --brk1:#FFF5EC; --brk2:#FFE2CC; --brk-ink:#3A1A08;
+  --tomato:#C9302C; --tomato-soft:#FBE3E1; --leaf:#2F8F62; --leaf-soft:#E2F2EA; --amber:#B07419; --amber-soft:#FBF0DB;
+  --shadow:0 2px 4px rgba(40,24,12,.04),0 16px 32px -18px rgba(40,24,12,.18); --shadow-sm:0 1px 2px rgba(40,24,12,.04),0 6px 16px -12px rgba(40,24,12,.12);
+  --f-display:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-body:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#12100E; --surface:#1B1815; --sunk:#24201C; --ink:#F1EBE5; --muted:#A49A91; --line:#302A25;
+  --accent:#FF8240; --accent-soft:#3A1F10; --accent-ink:#FFB287; --brk1:#3A2416; --brk2:#23150C; --brk-ink:#FFEADB;
+  --tomato:#FF5E57; --tomato-soft:#3A1715; --leaf:#4CC38A; --leaf-soft:#15301F; --amber:#E7B04E; --amber-soft:#33280F;
+  --shadow:0 2px 4px rgba(0,0,0,.3),0 16px 32px -18px rgba(0,0,0,.7); --shadow-sm:0 1px 2px rgba(0,0,0,.3),0 6px 16px -12px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#12100E; --surface:#1B1815; --sunk:#24201C; --ink:#F1EBE5; --muted:#A49A91; --line:#302A25;
+  --accent:#FF8240; --accent-soft:#3A1F10; --accent-ink:#FFB287; --brk1:#3A2416; --brk2:#23150C; --brk-ink:#FFEADB;
+  --tomato:#FF5E57; --tomato-soft:#3A1715; --leaf:#4CC38A; --leaf-soft:#15301F; --amber:#E7B04E; --amber-soft:#33280F;
+  --shadow:0 2px 4px rgba(0,0,0,.3),0 16px 32px -18px rgba(0,0,0,.7); --shadow-sm:0 1px 2px rgba(0,0,0,.3),0 6px 16px -12px rgba(0,0,0,.5); color-scheme:dark}
+
+*{box-sizing:border-box}
+form{margin:0}
+[hidden]{display:none!important}
+html,body{background:var(--paper);color:var(--ink)}
+body{font:15px/1.5 var(--f-body);padding-inline:16px;padding-block:20px 60px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:860px){.app{grid-template-columns:minmax(0,1fr)}}
+.left{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);display:flex;flex-direction:column;gap:14px}
+@media (max-width:860px){.left{position:static}}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.brand h1{font:700 22px/1.1 var(--f-display);letter-spacing:-.01em;margin:0}
+.save-state{font-size:12px;color:var(--muted)}
+.save-state.err{color:var(--tomato)}
+
+/* Timer */
+.timer{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px;--mode:var(--tomato);--mode-soft:var(--tomato-soft)}
+.timer[data-kind="break"]{--mode:var(--leaf);--mode-soft:var(--leaf-soft)}
+.modes{display:flex;gap:6px;flex-wrap:wrap}
+.mode{border:1px solid var(--line);background:transparent;border-radius:999px;padding:4px 12px;font-size:13px;cursor:pointer;color:var(--muted)}
+.mode[aria-pressed="true"]{background:var(--mode-soft);border-color:transparent;color:var(--mode);font-weight:600}
+.mode:disabled{cursor:default}
+.ring-wrap{position:relative;width:min(230px,70vw);aspect-ratio:1;margin:0 auto;max-width:100%}
+.ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--sunk);stroke-width:10}
+.ring-fg{fill:none;stroke:var(--mode);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .25s linear}
+.clock-box{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.clock{font:700 56px/1 var(--f-display);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.clock-sub{font-size:13px;color:var(--muted)}
+.paused .clock{opacity:.45}
+.field-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px}
+select,input[type=text],input[type=number],input[type=date],input[type=search],textarea{width:100%;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+textarea{resize:vertical;line-height:1.55}
+.task-progress{font-size:13px;color:var(--muted);margin-top:6px;font-variant-numeric:tabular-nums}
+.ctrls{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--mode,var(--tomato));border-color:transparent;color:#fff;flex:1;font-weight:600}
+.btn.primary.solid{background:var(--tomato)}
+.btn.ghost{background:transparent}
+.btn.small{padding:4px 10px;font-size:13px}
+.btn.danger{color:var(--tomato)}
+.stop-panel{border-top:1px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:4px 12px;font-size:13px;cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Alert */
+.alert{border-radius:14px;padding:14px 16px;background:var(--amber-soft);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);display:flex;flex-direction:column;gap:10px}
+.alert.hard{background:var(--tomato-soft);border-color:color-mix(in srgb,var(--tomato) 35%,transparent)}
+.alert h3{margin:0;font:600 15px/1.35 var(--f-body);text-wrap:balance}
+.alert .nums{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.alert .q{font-size:13px;font-style:italic;color:var(--muted)}
+
+/* Quote */
+.quote{padding:6px 4px 0}
+.quote blockquote{margin:0;font:500 18px/1.4 var(--f-display);text-wrap:balance}
+.quote .by{font-size:13px;color:var(--muted);margin-top:6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.link{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-size:12px}
+.focus-note{font-size:14px;color:var(--muted);padding:6px 4px 0}
+.focus-note strong{color:var(--ink)}
+
+/* Inbox */
+.inbox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.inbox h2{margin:0;font:600 14px/1.3 var(--f-body)}
+.inbox .hint{font-size:12px;color:var(--muted);margin:0}
+.inbox ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.inbox li{display:flex;gap:8px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:6px;flex-wrap:wrap}
+.inbox li span{flex:1;min-width:0;overflow-wrap:anywhere}
+.inbox .acts{display:flex;gap:4px}
+
+/* Right */
+.right{min-width:0;display:flex;flex-direction:column;gap:16px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{background:none;border:0;border-bottom:2px solid transparent;padding:10px 12px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab .count{font-family:var(--f-mono);font-size:11px;background:var(--sunk);border-radius:6px;padding:1px 5px;margin-left:4px}
+h2.sec{font:700 20px/1.2 var(--f-display);margin:0}
+h3.sub{font:600 13px/1.3 var(--f-body);margin:6px 0 0;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.budget{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.budget .row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.budget .big{font:700 26px/1 var(--f-display)}
+.budget .lbl{font-size:12px;color:var(--muted)}
+.bar{height:8px;background:var(--sunk);border-radius:99px;overflow:hidden;display:flex}
+.bar span{display:block;height:100%}
+.warn{color:var(--amber);font-size:13px}
+
+.add{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:end}
+.add .more{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+@media (max-width:520px){.add{grid-template-columns:minmax(0,1fr) auto}.add .addbtn{grid-column:1/-1}}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+.stepper button{background:none;border:0;width:30px;height:36px;cursor:pointer;font-size:16px;color:var(--muted)}
+.stepper output{min-width:48px;text-align:center;font-family:var(--f-mono);font-size:13px}
+.check{display:flex;gap:6px;align-items:center;font-size:14px;cursor:pointer}
+
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.task{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.task.active{border-color:var(--accent)}
+.task.done{opacity:.6}
+.task.done .t-title{text-decoration:line-through}
+.box{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:transparent;cursor:pointer;display:grid;place-items:center;padding:0}
+.box:hover{border-color:var(--leaf)}
+.task.done .box{background:var(--leaf);border-color:var(--leaf)}
+.box svg{width:12px;height:12px;stroke:#fff;fill:none;stroke-width:3;opacity:0}
+.task.done .box svg{opacity:1}
+.t-title{font-weight:500;overflow-wrap:anywhere;cursor:pointer}
+.t-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--muted);margin-top:3px}
+.pill{border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.pill.ok{background:var(--leaf-soft);color:var(--leaf)}
+.pill.near{background:var(--amber-soft);color:var(--amber)}
+.pill.over{background:var(--tomato-soft);color:var(--tomato)}
+.pill.stale{background:var(--sunk);color:var(--muted);border:1px dashed var(--muted)}
+.tag{background:var(--sunk);border-radius:6px;padding:0 6px}
+.prio-3{color:var(--tomato);font-weight:600}
+.overdue{color:var(--tomato);font-weight:600}
+.pomos{display:flex;gap:3px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.pomo{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--line);position:relative;overflow:hidden}
+.pomo i{position:absolute;inset:0;background:var(--tomato);transform-origin:left}
+.pomo.extra{border-color:var(--tomato);border-style:dashed}
+.pomos .n{font-family:var(--f-mono);font-size:11px;color:var(--muted);margin-left:6px}
+.t-act{display:flex;gap:4px}
+.icon{width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:transparent;cursor:pointer;display:grid;place-items:center;color:var(--muted)}
+.icon:hover{border-color:var(--line);color:var(--ink)}
+.icon.on{color:var(--amber)}
+.icon.play{color:var(--tomato)}
+.icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:520px){.task{grid-template-columns:auto minmax(0,1fr)}.t-act{grid-column:2;justify-content:flex-start}}
+
+.empty{border:1px dashed var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:10px;align-items:center}
+.empty strong{color:var(--ink);font-family:var(--f-display);font-size:17px}
+.filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.filters select{width:auto}
+.seg{border:1px solid var(--line);background:transparent;border-radius:999px;padding:4px 12px;cursor:pointer;font-size:13px}
+.seg[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* Inline subtasks */
+.subs-inline{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.prog{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.prog .bar{flex:1;min-width:120px;height:6px}
+.prog .bar span{background:var(--leaf)}
+.prog .pl{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.prog .pl b{color:var(--ink);font-weight:600}
+.sl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.sl li{display:flex;align-items:center;gap:8px;font-size:14px;padding:2px 4px;border-radius:6px}
+.sl li:hover{background:var(--sunk)}
+.sl label{flex:1;min-width:0;display:flex;gap:8px;align-items:flex-start;cursor:pointer}
+.sl label span{overflow-wrap:anywhere}
+.sl input[type=checkbox]{margin-top:3px;accent-color:var(--leaf)}
+.sl li.done label span{text-decoration:line-through;color:var(--muted)}
+.sl .w{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.sl .x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0 4px;opacity:0}
+.sl li:hover .x,.sl .x:focus-visible{opacity:1}
+@media (hover:none){.sl .x{opacity:1}}
+.sadd input{background:transparent;border:1px dashed transparent;padding:4px 6px;font-size:14px;color:var(--muted)}
+.sadd input:hover{border-color:var(--line)}
+.sadd input:focus{border-style:solid;border-color:var(--line);background:var(--paper);color:var(--ink)}
+
+/* Matrix */
+:root{--q1:var(--tomato);--q2:var(--leaf);--q3:var(--amber);--q4:#8E9A93;--q1s:var(--tomato-soft);--q2s:var(--leaf-soft);--q3s:var(--amber-soft);--q4s:var(--sunk)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--q4:#7F8C86}}
+:root[data-theme="dark"]{--q4:#7F8C86}
+.q1{--qc:var(--q1);--qs:var(--q1s)}.q2{--qc:var(--q2);--qs:var(--q2s)}.q3{--qc:var(--q3);--qs:var(--q3s)}.q4{--qc:var(--q4);--qs:var(--q4s)}.q0{--qc:var(--muted);--qs:transparent}.qn{--qc:var(--line)}
+.qb{border:1px solid color-mix(in srgb,var(--qc) 40%,transparent);background:var(--qs);color:var(--qc);border-radius:6px;padding:0 7px;font-size:11.5px;font-weight:600;cursor:pointer;line-height:1.6}
+.q0.qb{border-style:dashed}
+.slip{font-size:11.5px;color:var(--tomato);border-bottom:1px dotted var(--tomato)}
+.task,.mitem{position:relative}
+.qmenu{position:absolute;z-index:15;top:calc(100% - 6px);left:40px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px;display:flex;flex-direction:column;gap:2px;width:min(280px,calc(100vw - 48px))}
+.mitem .qmenu{left:auto;right:0}
+.qm{display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:none;border:0;border-left:3px solid var(--qc);border-radius:6px;padding:6px 10px;cursor:pointer}
+.qm:hover,.qm:focus-visible{background:var(--sunk)}
+.qm[aria-current]{background:var(--qs)}
+.qm b{font-size:13.5px}.qm span{font-size:12px;color:var(--muted)}
+.qnote{margin:4px 6px 2px;font-size:12px;color:var(--muted)}
+.alloc{display:flex;flex-direction:column;gap:6px}
+.alloc-h{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px}
+.alloc-h span{color:var(--muted)}
+.abar{display:flex;height:14px;border-radius:4px;overflow:hidden;gap:2px;background:var(--sunk)}
+.abar span{background:var(--qc);min-width:3px}
+.abar .empty-bar{flex:1;background:transparent}
+.alegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted)}
+.alegend i{display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--qc);margin-right:5px}
+.alegend b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.matrix{display:grid;grid-template-columns:22px minmax(0,1fr);grid-template-rows:auto auto;gap:6px 8px}
+.axis-top{grid-column:2;display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:center}
+.axis-side{grid-row:2;display:grid;grid-template-rows:1fr 1fr;gap:12px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.axis-side span{writing-mode:vertical-rl;transform:rotate(180deg);text-align:center}
+.mgrid{grid-row:2;grid-column:2;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.mcell{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--qc);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;min-height:170px;transition:background .12s}
+.mcell.over{background:var(--qs);outline:2px dashed var(--qc);outline-offset:-4px}
+.mcell header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.mcell h3{margin:0;font:700 16px/1.2 var(--f-display);color:var(--qc)}
+.mcell.q0 h3{color:var(--ink)}
+.mh{font-size:12px;color:var(--muted)}
+.mcount{font-size:12px;font-family:var(--f-mono);color:var(--muted);white-space:nowrap}
+.mtip{margin:0;font-size:12.5px;color:var(--muted)}
+.mlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.mitem{display:flex;gap:8px;align-items:center;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:6px 6px 6px 10px;cursor:grab}
+.mitem.dragging{opacity:.4}
+.mi-main{min-width:0;display:flex;flex-direction:column}
+.mi-title{font-size:14px;font-weight:500;overflow-wrap:anywhere;cursor:pointer}
+.mi-meta{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tday{color:var(--amber);font-weight:600}
+.mempty{font-size:13px;color:var(--muted);padding:6px 0}
+.tray{border-top-style:dashed;min-height:0}
+@media (max-width:640px){.mgrid{grid-template-columns:minmax(0,1fr)}.matrix{grid-template-columns:minmax(0,1fr)}.axis-top,.axis-side{display:none}.mgrid{grid-column:1}}
+
+.qpick-wrap{grid-column:1/-1}
+.qpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+.qp{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:1px;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--qc);border-radius:8px;padding:6px 10px;cursor:pointer;min-width:0}
+.qp b{font-size:13px;color:var(--qc)}.qp.q0 b{color:var(--ink)}
+.qp span{font-size:11.5px;color:var(--muted)}
+.qp:hover{border-color:var(--qc)}
+.qp[aria-checked="true"]{background:var(--qs);border-color:var(--qc);box-shadow:inset 0 0 0 1px var(--qc)}
+.qp.q0[aria-checked="true"]{background:var(--sunk)}
+.qhint{font-size:12.5px;color:var(--muted);margin-top:6px;min-height:1em}
+.qhint b{color:var(--amber);font-weight:600}
+.seg.q1[aria-pressed="true"]{background:var(--q1);border-color:var(--q1);color:var(--surface)}
+.seg.q2[aria-pressed="true"]{background:var(--q2);border-color:var(--q2);color:var(--surface)}
+.seg.q3[aria-pressed="true"]{background:var(--q3);border-color:var(--q3);color:var(--surface)}
+.seg.q4[aria-pressed="true"]{background:var(--q4);border-color:var(--q4);color:var(--surface)}
+.madd input{background:transparent;border:1px dashed transparent;font-size:13.5px;padding:5px 8px;color:var(--muted)}
+.madd input:hover{border-color:var(--line)}
+.madd input:focus{border-style:solid;border-color:var(--qc);background:var(--paper);color:var(--ink)}
+
+.overlay.login-ov{background:var(--paper);z-index:40}
+.login-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:28px 24px;width:min(400px,100%);display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow);text-align:center}
+.login-card h2{margin:0;font:700 26px/1.1 var(--f-display)}
+.login-card p{margin:0;color:var(--muted)}
+.login-card .btn{flex:none;padding:12px 16px}
+.lg-msg{font-size:13px;color:var(--tomato)!important;min-height:1em}
+#exportBox,#importBox{font-family:var(--f-mono);font-size:12px}
+
+/* Notes as sheets */
+:root{--n-yellow:#FBF0C0;--n-green:#D7EDD9;--n-blue:#D6E6F3;--n-pink:#F7DADB;--n-lilac:#E5DFF3;--n-edge:rgba(40,50,30,.10)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--n-yellow:#3A3317;--n-green:#1C3224;--n-blue:#1B2B39;--n-pink:#3B2125;--n-lilac:#2A2539;--n-edge:rgba(255,255,255,.06)}}
+:root[data-theme="dark"]{--n-yellow:#3A3317;--n-green:#1C3224;--n-blue:#1B2B39;--n-pink:#3B2125;--n-lilac:#2A2539;--n-edge:rgba(255,255,255,.06)}
+.c-yellow{--sheet:var(--n-yellow)}.c-green{--sheet:var(--n-green)}.c-blue{--sheet:var(--n-blue)}.c-pink{--sheet:var(--n-pink)}.c-lilac{--sheet:var(--n-lilac)}.c-task{--sheet:var(--surface)}
+.board{columns:220px;column-gap:18px}
+.board-h{font:600 13px/1.3 var(--f-body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:4px 0 10px}
+.sheet{display:block;width:100%;break-inside:avoid;margin:0 0 18px;text-align:left;border:1px solid var(--n-edge);background:var(--sheet);border-radius:3px 3px 14px 3px;padding:16px 16px 12px;cursor:pointer;position:relative;box-shadow:0 1px 1px rgba(0,0,0,.05),0 10px 18px -12px rgba(0,0,0,.35);transform:rotate(var(--tilt,0deg));transition:transform .18s ease,box-shadow .18s ease}
+.board .sheet:nth-child(3n+1){--tilt:-.7deg}.board .sheet:nth-child(3n+2){--tilt:.5deg}.board .sheet:nth-child(3n){--tilt:-.2deg}
+.sheet:hover{transform:rotate(0) translateY(-2px);box-shadow:0 1px 1px rgba(0,0,0,.05),0 16px 24px -14px rgba(0,0,0,.4)}
+.sheet.c-task{border-style:dashed;border-color:var(--line)}
+.sheet.pinned::before{content:"";position:absolute;top:-9px;left:50%;width:64px;height:18px;transform:translateX(-50%) rotate(-2deg);background:color-mix(in srgb,var(--tomato) 28%,transparent);border-radius:2px}
+.s-title{display:block;font:700 16px/1.3 var(--f-display);margin-bottom:6px;overflow-wrap:anywhere}
+.s-body{display:-webkit-box;-webkit-line-clamp:9;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap;font-size:14px;line-height:1.55;overflow-wrap:anywhere}
+.s-foot{display:flex;justify-content:space-between;gap:8px;margin-top:10px;font-size:11.5px;color:var(--muted)}
+.s-kind{color:var(--tomato);font-weight:600}
+.sheet.new{background:transparent;border:1.5px dashed var(--line);box-shadow:none;display:flex;align-items:center;justify-content:center;min-height:120px;color:var(--muted);font-weight:500}
+.sheet.new:hover{color:var(--ink);border-color:var(--muted)}
+.overlay.center{justify-content:center;align-items:center;padding:16px}
+.sheet-edit{background:var(--sheet);width:min(620px,100%);max-height:calc(100% - 32px);display:flex;flex-direction:column;gap:10px;padding:22px 22px 14px;border-radius:4px 4px 18px 4px;box-shadow:0 30px 60px -20px rgba(0,0,0,.5);overflow:auto}
+.sheet-edit .ne-title{font:700 22px/1.25 var(--f-display);background:transparent;border:0;padding:0;width:100%}
+.sheet-edit .ne-title:focus{outline:none}
+.sheet-edit .ne-link{font-size:12px;color:var(--muted)}
+.sheet-edit textarea{background:transparent;border:0;padding:0;min-height:280px;font-size:15px;line-height:1.65;resize:none}
+.sheet-edit textarea:focus{outline:none}
+.ne-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--n-edge);padding-top:10px}
+.sw{width:22px;height:22px;border-radius:50%;border:1px solid var(--n-edge);background:var(--sheet);cursor:pointer;padding:0}
+.sw[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:2px}
+.ne-bar .sp{flex:1}
+.ne-bar .meta{font-size:12px;color:var(--muted)}
+
+/* Stats */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card h3{margin:0;font:600 15px/1.3 var(--f-body)}
+.card p.note{margin:0;font-size:13px;color:var(--muted)}
+.bars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end;height:140px}
+.bars .col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%}
+.bars .b{width:70%;background:var(--tomato);border-radius:5px 5px 2px 2px;min-height:2px}
+.bars .v{font-family:var(--f-mono);font-size:11px}
+.bars .d{font-size:11px;color:var(--muted)}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+th{font-size:12px;color:var(--muted);font-weight:500}
+td.num,th.num{text-align:right}
+.lowdata{color:var(--muted);font-size:12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+
+/* Settings */
+.set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.qlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.qlist li{display:flex;gap:8px;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:6px}
+.qlist li span{min-width:0;overflow-wrap:anywhere}
+
+/* Drawer */
+.overlay{position:fixed;inset:0;background:rgba(10,20,15,.45);display:flex;justify-content:flex-end;z-index:20}
+.drawer{background:var(--paper);width:min(520px,100%);height:100%;overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 30px);display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}
+.drawer .head{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.drawer .row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.subs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.subs li{display:flex;gap:8px;align-items:center}
+.subs li input[type=text]{flex:1}
+.subs li.done input[type=text]{text-decoration:line-through;color:var(--muted)}
+.log{font-size:13px;color:var(--muted);margin:0;padding-left:18px}
+
+/* Toast */
+.toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-direction:column;gap:8px;z-index:30;width:min(440px,calc(100% - 32px))}
+.toast{background:var(--ink);color:var(--paper);border-radius:12px;padding:12px 14px;font-size:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:4px}
+.toast .tq{opacity:.8;font-style:italic;font-size:13px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ===== Giao diện v2: nền xám nhạt, thẻ trắng bo tròn, xanh lá là màu chính, đỏ chỉ cho cảnh báo, nhãn mono in hoa ===== */
+body{font-size:14.5px}
+.app{gap:28px}
+.brand h1{font:700 19px/1 var(--f-display);letter-spacing:-.02em;display:flex;align-items:center;gap:9px}
+.brand h1::before{content:"";width:24px;height:24px;border-radius:8px;flex:none;background:radial-gradient(circle,#fff 0 3px,transparent 3.5px),linear-gradient(150deg,#FF9A4D,#D9480F)}
+.field-label,h3.sub,.budget .lbl,.board-h,th,.axis-top,.axis-side,.mcount,.clock-sub,.alloc-h b{font-family:var(--f-mono);text-transform:uppercase;letter-spacing:.08em;font-size:11px;font-weight:500}
+.alloc-h b{color:var(--ink)}
+h3.sub{color:var(--muted);margin-top:10px}
+select,input[type=text],input[type=number],input[type=date],input[type=search],textarea{background:var(--sunk);border:1px solid transparent;border-radius:12px;padding:9px 12px}
+select:focus,input:focus,textarea:focus{border-color:var(--accent);background:var(--surface);outline:none}
+.btn{border-radius:10px;border-color:var(--line);background:var(--surface)}
+.btn.primary.solid,.btn.primary{background:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.06)}
+
+/* Tabs as a pill segmented bar */
+.tabs{border:0;background:var(--surface);border-radius:16px;padding:5px;gap:2px;box-shadow:var(--shadow-sm)}
+.tab{border:0;border-radius:11px;padding:8px 14px;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--accent-soft);color:var(--accent-ink);border:0;font-weight:600}
+.tab .count{background:var(--accent);color:#fff}
+
+/* Cards */
+.inbox,.budget,.card,.task,.alert,.mcell,.hello,.quote-card{border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow-sm);background:var(--surface)}
+.inbox,.budget,.card{padding:18px}
+.task{border-radius:18px;padding:14px 16px}
+.task.active{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.task:hover{border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
+.icon.play{color:var(--accent)}
+.icon.on{color:var(--amber)}
+.box:hover{border-color:var(--accent)}
+.task.done .box{background:var(--accent);border-color:var(--accent)}
+.pomo i{background:var(--accent)}
+.pomo{border-radius:3px;width:11px;height:11px}
+.pill{border-radius:6px;border:1px solid transparent;padding:1px 8px}
+.pill.ok{border-color:color-mix(in srgb,var(--accent) 30%,transparent)}
+.pill.near{border-color:color-mix(in srgb,var(--amber) 35%,transparent)}
+.pill.over{border-color:color-mix(in srgb,var(--tomato) 35%,transparent)}
+.tag{background:var(--sunk);border-radius:6px;padding:1px 7px}
+.qb{border-radius:6px}
+.seg{border-radius:10px;background:var(--surface)}
+.seg[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.empty{border-radius:20px;background:color-mix(in srgb,var(--surface) 55%,transparent)}
+
+/* Timer: một màu cam trên thẻ trắng; giờ nghỉ dùng cam nhạt hơn */
+.timer{border:1px solid var(--line);border-radius:24px;padding:20px;background:var(--surface);box-shadow:var(--shadow);--mode:var(--accent);--mode-soft:var(--accent-soft)}
+.timer[data-kind="break"]{--mode:color-mix(in srgb,var(--accent) 55%,var(--surface))}
+.timer .clock{font:600 60px/1 var(--f-body);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.timer .ring-bg{stroke:var(--sunk)}
+.timer .mode[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-ink)}
+.timer .btn.primary,.timer[data-kind="break"] .btn.primary{background:var(--accent);color:#fff}
+
+/* Greeting card */
+.hello{padding:18px 20px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-end;background:linear-gradient(120deg,var(--accent-soft),var(--surface) 70%)}
+.hello h2{margin:0;font:700 24px/1.15 var(--f-display);letter-spacing:-.02em;text-wrap:balance}
+.hello p{margin:4px 0 0;color:var(--muted)}
+.hello p b{color:var(--ink)}
+.hello .next{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 14px;min-width:0;max-width:340px;flex:1 1 220px}
+.hello .next .field-label{margin-bottom:2px}
+.hello .next div{font-weight:500;overflow-wrap:anywhere;border-left:3px solid var(--accent);padding-left:8px}
+
+/* Quote */
+.quote-card{padding:16px 18px}
+.quote blockquote{font:600 16.5px/1.45 var(--f-body);letter-spacing:-.005em}
+
+/* Dot-matrix: one square = one pomodoro */
+.dots{display:flex;flex-wrap:wrap;gap:5px}
+.dots i{width:14px;height:14px;border-radius:4px;background:var(--sunk);border:1px solid var(--line)}
+.dots i.done{background:var(--accent);border-color:var(--accent)}
+.dots i.plan{background:color-mix(in srgb,var(--accent) 28%,var(--surface));border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+.dots i.over{background:var(--tomato);border-color:var(--tomato)}
+.dots i.over.plan{background:color-mix(in srgb,var(--tomato) 30%,var(--surface));border-color:var(--tomato)}
+.dot-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted)}
+.dot-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.budget .big{font:600 34px/1 var(--f-body);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.budget .row{align-items:flex-end}
+.dcols{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end}
+.dcol{display:flex;flex-direction:column;align-items:center;gap:6px}
+.dcol .stack{display:flex;flex-direction:column-reverse;gap:4px}
+.dcol .stack i{width:14px;height:14px;border-radius:4px;background:var(--sunk);border:1px solid var(--line)}
+.dcol .stack i.on{background:var(--accent);border-color:var(--accent)}
+.dcol .v{font-family:var(--f-mono);font-size:12px;font-weight:500}
+.dcol .d{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.dcol.today .d{color:var(--accent-ink);font-weight:600}
+
+/* Matrix */
+.mcell{border-top:1px solid var(--line);border-radius:20px}
+.mcell h3{color:var(--ink);display:flex;align-items:center;gap:8px}
+.mcell h3::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--qc);flex:none}
+.mcell.tray{border-style:dashed}
+.mitem{border-radius:12px;background:var(--sunk);border-color:transparent}
+.abar{height:12px;border-radius:6px}
+
+/* Notes */
+.sheet{border-radius:6px 6px 18px 6px}
+.sheet.pinned::before{background:color-mix(in srgb,var(--accent) 35%,transparent)}
+.s-kind{color:var(--accent-ink)}
+.sheet-edit{border-radius:8px 8px 22px 8px}
+
+.inbox li{flex-direction:column;align-items:stretch;gap:6px}
+.inbox .acts{flex-wrap:wrap}
+.inbox .btn{white-space:nowrap}
+.prog .bar span{background:var(--accent)}
+/* Compact quadrant selector */
+.qsel{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end}
+.qrow{display:flex;flex-direction:column;gap:4px;min-width:0}
+.segs{display:inline-flex;flex-wrap:wrap;background:var(--sunk);border:1px solid var(--line);border-radius:11px;padding:3px;gap:2px}
+.segs button{border:0;background:transparent;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.segs button:hover:not(:disabled){color:var(--ink)}
+.segs button[aria-checked="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(40,24,12,.12)}
+.segs.auto button{cursor:default}
+.segs.auto button[aria-checked="true"]{background:var(--accent-soft);color:var(--accent-ink);box-shadow:none}
+.qresult{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:12.5px;color:var(--muted)}
+
+@media (max-width:520px){.qrow{flex:1 1 100%}.segs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr}.segs button{white-space:normal;padding:7px 6px;line-height:1.25}}
+/* New-task form as a raised card */
+#addForm{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:var(--shadow);gap:12px}
+#addForm .field-label{color:var(--ink)}
+#addTitle{font-size:16px;font-weight:500;padding:12px 14px;border:1.5px solid var(--line);background:var(--surface)}
+#addTitle:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+#addForm .stepper{background:var(--sunk);border-color:var(--line);height:46px}
+#addForm .addbtn{height:46px;padding-inline:22px}
+#addForm .more{border-top:1px dashed var(--line);padding-top:12px}
+
+/* Compact header + form so the task list shows without scrolling */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.hello{padding:14px 18px;align-items:center;gap:12px 20px}
+.hello h2{font-size:20px}
+.hello p{margin-top:2px;font-size:13.5px}
+.hello-r{display:flex;flex-direction:column;gap:6px;align-items:flex-end;min-width:0}
+.hb-top{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;font-size:12.5px;color:var(--muted)}
+.hb-top b{color:var(--ink);font-size:15px}
+.hb-note{color:var(--muted)}.warn-t{color:var(--tomato);font-weight:600}
+.hello .dots{gap:4px;justify-content:flex-end}
+.hello .dots i{width:12px;height:12px;border-radius:3px}
+@media (max-width:640px){.hello-r{align-items:flex-start}.hb-top,.hello .dots{justify-content:flex-start}}
+#addForm{padding:14px 16px;gap:10px}
+#addTitle{padding:10px 14px}
+#addForm .stepper,#addForm .addbtn{height:44px}
+#addForm .more{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 10px;padding-top:10px;align-items:end}
+#addForm .more input{padding:7px 10px;height:38px}
+#addForm .field-label{color:var(--muted);margin-bottom:3px}
+.today-chk{height:38px;align-self:end}
+.qhint{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
+.qhint b{color:var(--amber);font-weight:600}
+.qfield{position:relative;min-width:0}
+.qbtn{width:100%;height:38px;display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--sunk);border:1px solid transparent;border-radius:12px;padding:0 8px 0 6px;cursor:pointer}
+.qbtn:hover{border-color:var(--line)}
+.qbtn .qb{pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qbtn svg{width:16px;height:16px;fill:none;stroke:var(--muted);stroke-width:2;flex:none}
+.qfield .qmenu{left:0;right:auto;top:calc(100% + 4px)}
+.drawer .qbtn{height:42px}
+@media (max-width:520px){.qfield .qmenu{left:auto;right:0}}
+
+.sadd input{background:transparent;border:1px dashed transparent;padding:3px 8px;height:30px;font-size:13px}
+.sadd input:hover{border-color:var(--line)}
+.sadd input:focus{background:var(--surface);border-style:solid;border-color:var(--accent);box-shadow:none}
+.subs-inline{margin-top:4px;gap:4px}
+.task{padding:12px 16px}
+.pomos{margin-top:4px}
+/* Drawer & overlays */
+.drawer{background:var(--surface)}
+.login-card{border-radius:24px}
+</style>
+
+<div class="app">
+  <aside class="left">
+    <div class="brand"><h1>Phiên Làm Việc</h1><span class="save-state" id="saveState">Đang tải…</span></div>
+
+    <section class="timer" id="timer" data-kind="focus" aria-label="Đồng hồ pomodoro">
+      <div class="modes" id="modes">
+        <button class="mode" data-mode="focus" aria-pressed="true">Tập trung</button>
+        <button class="mode" data-mode="short" aria-pressed="false">Nghỉ ngắn</button>
+        <button class="mode" data-mode="long" aria-pressed="false">Nghỉ dài</button>
+      </div>
+      <div class="ring-wrap" id="ringWrap">
+        <svg viewBox="0 0 200 200" aria-hidden="true"><circle class="ring-bg" cx="100" cy="100" r="88"/><circle class="ring-fg" id="ring" cx="100" cy="100" r="88"/></svg>
+        <div class="clock-box"><div class="clock" id="clock">25:00</div><div class="clock-sub" id="clockSub">Sẵn sàng</div></div>
+      </div>
+      <div>
+        <label class="field-label" for="taskSel">Đang làm việc gì</label>
+        <select id="taskSel"></select>
+        <div class="task-progress" id="taskProg"></div>
+      </div>
+      <div class="ctrls">
+        <button class="btn primary" id="btnMain">Bắt đầu tập trung</button>
+        <button class="btn" id="btnStop" hidden>Dừng phiên</button>
+      </div>
+      <div class="stop-panel" id="stopPanel" hidden>
+        <span class="field-label">Vì sao dừng giữa chừng?</span>
+        <div class="chips" id="reasonChips"></div>
+        <div><button class="link" id="stopCancel">Không dừng nữa</button></div>
+      </div>
+    </section>
+
+    <section class="alert" id="alertBox" hidden aria-live="polite"></section>
+    <section id="quoteArea"></section>
+
+    <section class="inbox" aria-labelledby="inboxH">
+      <h2 id="inboxH">Ghi nhanh</h2>
+      <p class="hint" id="inboxHint">Nảy ra việc khác lúc đang tập trung? Gõ một dòng rồi làm tiếp. Đến giờ nghỉ, bạn chọn biến nó thành việc, thành ghi chú, hoặc xoá.</p>
+      <form id="inboxForm"><input type="text" id="inboxInput" placeholder="Ví dụ: gọi lại cho anh Minh về báo giá" autocomplete="off"></form>
+      <ul id="inboxList"></ul>
+    </section>
+  </aside>
+
+  <main class="right">
+    <section class="hello" id="hello" aria-live="polite"></section>
+    <nav class="tabs" role="tablist" id="tabs">
+      <button class="tab" role="tab" data-tab="today" aria-selected="true">Hôm nay</button>
+      <button class="tab" role="tab" data-tab="all" aria-selected="false">Tất cả việc</button>
+      <button class="tab" role="tab" data-tab="notes" aria-selected="false">Ghi chú</button>
+      <button class="tab" role="tab" data-tab="matrix" aria-selected="false">Ma trận</button>
+      <button class="tab" role="tab" data-tab="stats" aria-selected="false">Thống kê</button>
+      <button class="tab" role="tab" data-tab="settings" aria-selected="false">Cài đặt</button>
+    </nav>
+    <div id="view"></div>
+  </main>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div id="drawerRoot"></div>
+<div id="noteRoot"></div>
+<div id="loginRoot"></div>
+
+<script>
+(() => {
+'use strict';
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const newId = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-5);
+const pad = n => String(n).padStart(2, '0');
+const dayStr = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return d; };
+const fmtClock = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${pad(Math.floor(s / 60))}:${pad(s % 60)}`; };
+const fmtMin = ms => `${Math.round(ms / 60000)}′`;
+const fmtDue = s => { if (!s) return ''; const [y, m, d] = s.split('-'); return `${d}/${m}`; };
+const clone = o => JSON.parse(JSON.stringify(o));
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const ICON = {
+  play: '<svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg>',
+  sun: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  more: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>'
+};
+
+/* ---------- quotes ---------- */
+const THEMES = { 'tap-trung': 'Tập trung', 'ky-luat': 'Kỷ luật', 'kien-nhan': 'Kiên nhẫn', 'uoc-luong': 'Chia nhỏ & ước lượng' };
+const QUOTES = [
+  { id: 'q1', t: 'Hành trình ngàn dặm bắt đầu từ một bước chân.', by: 'Lão Tử', th: 'kien-nhan' },
+  { id: 'q2', t: 'Nước chảy đá mòn.', by: 'Tục ngữ Việt Nam', th: 'kien-nhan' },
+  { id: 'q3', t: 'Kiến tha lâu cũng đầy tổ.', by: 'Tục ngữ Việt Nam', th: 'kien-nhan' },
+  { id: 'q4', t: 'Có công mài sắt, có ngày nên kim.', by: 'Tục ngữ Việt Nam', th: 'ky-luat' },
+  { id: 'q5', t: 'Chúng ta là những gì ta làm lặp đi lặp lại. Vì vậy, xuất sắc không phải là một hành động mà là một thói quen.', by: 'Will Durant, diễn giải Aristotle', th: 'ky-luat' },
+  { id: 'q6', t: 'Ai cũng phải chịu một trong hai nỗi đau: nỗi đau của kỷ luật hoặc nỗi đau của hối tiếc.', by: 'Jim Rohn', th: 'ky-luat' },
+  { id: 'q7', t: 'Không có việc gì đặc biệt khó nếu bạn chia nó thành những phần việc nhỏ.', by: 'Henry Ford', th: 'uoc-luong' },
+  { id: 'q8', t: 'Công việc luôn giãn ra để lấp đầy thời gian dành cho nó.', by: 'Định luật Parkinson', th: 'uoc-luong' },
+  { id: 'q9', t: 'Việc gì cũng mất nhiều thời gian hơn bạn nghĩ, kể cả khi bạn đã tính đến định luật này.', by: 'Định luật Hofstadter', th: 'uoc-luong' },
+  { id: 'q10', t: 'Tập trung nghĩa là nói không với hàng trăm ý tưởng hay khác.', by: 'Steve Jobs', th: 'tap-trung' },
+  { id: 'q11', t: 'Không phải vì việc khó mà ta không dám làm; chính vì ta không dám làm nên việc mới khó.', by: 'Seneca', th: 'ky-luat' },
+  { id: 'q12', t: 'Việc hôm nay chớ để ngày mai.', by: 'Tục ngữ Việt Nam', th: 'ky-luat' },
+  { id: 'q13', t: 'Muốn đi nhanh, hãy đi một mình. Muốn đi xa, hãy đi cùng nhau.', by: 'Tục ngữ châu Phi', th: 'kien-nhan' },
+  { id: 'q14', t: 'Thời gian là thứ ta muốn có nhiều nhất nhưng lại dùng tệ nhất.', by: 'William Penn', th: 'tap-trung' },
+  { id: 'q15', t: 'Hãy xử lý việc lớn khi nó còn nhỏ.', by: 'Lão Tử', th: 'uoc-luong' },
+  { id: 'q16', t: 'Không nhịn được việc nhỏ thì hỏng việc lớn.', by: 'Khổng Tử, Luận Ngữ', th: 'kien-nhan' },
+  { id: 'q17', t: 'Làm xong tốt hơn làm hoàn hảo.', by: '', th: 'tap-trung' }
+];
+const REASONS = ['Bị gọi / có người hỏi', 'Họp', 'Mất tập trung', 'Việc gấp chen ngang', 'Mệt, cần nghỉ', 'Khác'];
+
+/* ---------- state ---------- */
+const DEFAULT_SETTINGS = { focus: 25, short: 5, long: 15, longEvery: 4, budget: 8, autoBreak: true, sound: true, staleDays: 7, urgentDays: 2, themes: Object.keys(THEMES), customQuotes: [], hiddenQuotes: [] };
+const DEFAULT_TIMER = { mode: 'focus', running: false, taskId: '', startedAt: 0, durMs: 0, pausedAt: 0, pausedTotal: 0, cycle: 0 };
+const S = { tasks: {}, notes: {}, inbox: [], settings: clone(DEFAULT_SETTINGS), timer: clone(DEFAULT_TIMER), days: {} };
+const UI = { addQ: 0, quadFilter: '', tab: 'today', filter: 'open', tagFilter: '', noteKind: 'all', noteEdit: null, noteQuery: '', quote: null, recentQ: [], alert: null, addEst: 2, stopOpen: false };
+try { const t = localStorage.getItem('pomo.tab'); if (t) UI.tab = t; } catch (e) {}
+
+/* ---------- storage ---------- */
+const LS_KEY = 'pomo.data.v1';
+const Store = {
+  kind: 'memory', db: null, fs: null, fbUser: null, base: '', q: new Map(), touched: 0,
+  remote() { return this.kind === 'db' || this.kind === 'fb'; },
+  async init() {
+    if (window.FIREBASE_CONFIG && window.firebase) { await this.initFb(); return; }
+    let db = null, user = null;
+    try {
+      if (window.claude && window.claude.use) [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    } catch (e) { db = null; }
+    let id = null;
+    if (db && user) { try { id = await user.id(); } catch (e) { id = null; } }
+    if (db && id) {
+      this.db = db; this.base = `data/users/${id}`; this.kind = 'db';
+      try { await this.loadRemote(); return; } catch (e) { console.warn('db load failed', e); this.kind = 'local'; }
+    }
+    this.kind = lsOk() ? 'local' : 'memory';
+    this.loadLocal();
+  },
+  /* Vercel build: Google sign-in + Firestore. Each person's data lives under users/<uid>. */
+  async initFb() {
+    firebase.initializeApp(window.FIREBASE_CONFIG);
+    const auth = firebase.auth();
+    const fs = firebase.firestore();
+    try { await fs.enablePersistence({ synchronizeTabs: true }); } catch (e) {}
+    let user = await new Promise(res => { const un = auth.onAuthStateChanged(u => { un(); res(u); }); });
+    for (;;) {
+      if (!user) user = await showLogin(auth, '');
+      this.fs = fs; this.fbUser = user; this.base = `users/${user.uid}`; this.kind = 'fb';
+      try { await this.loadRemote(); hideLogin(); return; }
+      catch (e) {
+        const denied = e && e.code === 'permission-denied';
+        await auth.signOut(); user = null;
+        await showLogin(auth, denied ? `Tài khoản ${this.fbUser.email} không có quyền dùng app này. Hãy đăng nhập bằng tài khoản đã khai báo trong quy tắc Firestore.` : 'Không tải được dữ liệu. Kiểm tra mạng rồi đăng nhập lại.').then(u => { user = u; });
+      }
+    }
+  },
+  col(name) { return this.kind === 'fb' ? this.fs.collection(`${this.base}/${name}`) : this.db.doc(this.base + '/app').collection(name); },
+  single(name) { return this.kind === 'fb' ? this.fs.doc(`${this.base}/meta/${name}`) : this.db.doc(this.base + '/' + name); },
+  ref(kind, id) {
+    if (kind === 'task') return this.col('tasks').doc(id);
+    if (kind === 'note') return this.col('notes').doc(id);
+    if (kind === 'day') return this.col('days').doc(id);
+    return this.single(kind); // settings | timer | inbox
+  },
+  async loadRemote() {
+    const [st, tm, ib, ts, ns, ds] = await Promise.all([
+      this.single('settings').get(), this.single('timer').get(), this.single('inbox').get(),
+      this.col('tasks').limit(1000).get(), this.col('notes').limit(1000).get(),
+      this.col('days').where('date', '>=', dayStr(daysAgo(60))).limit(100).get()
+    ]);
+    S.settings = st.exists ? Object.assign(clone(DEFAULT_SETTINGS), clone(st.data())) : clone(DEFAULT_SETTINGS);
+    S.timer = tm.exists ? Object.assign(clone(DEFAULT_TIMER), clone(tm.data())) : clone(DEFAULT_TIMER);
+    S.inbox = ib.exists ? clone(ib.data().items || []) : [];
+    S.tasks = {}; S.notes = {}; S.days = {};
+    ts.docs.forEach(d => { S.tasks[d.id] = clone(d.data()); });
+    ns.docs.forEach(d => { S.notes[d.id] = clone(d.data()); });
+    ds.docs.forEach(d => { S.days[d.id] = clone(d.data()); });
+  },
+  idle() { return [...this.q.values()].every(e => !e.busy && !e.next) && Date.now() - this.touched > 3000; },
+  loadLocal() {
+    if (this.kind !== 'local') return;
+    try {
+      const raw = localStorage.getItem(LS_KEY); if (!raw) return;
+      const o = JSON.parse(raw);
+      S.tasks = o.tasks || {}; S.notes = o.notes || {}; S.inbox = o.inbox || []; S.days = o.days || {};
+      S.settings = Object.assign(clone(DEFAULT_SETTINGS), o.settings || {});
+      S.timer = Object.assign(clone(DEFAULT_TIMER), o.timer || {});
+    } catch (e) {}
+  },
+  saveLocal: debounce(() => { try { localStorage.setItem(LS_KEY, JSON.stringify(S)); setSaved('ok'); } catch (e) { setSaved('err'); } }, 300),
+  save(kind, id, obj) {
+    this.touched = Date.now();
+    if (this.remote()) {
+      let ref; try { ref = this.ref(kind, id); } catch (e) { console.warn(e); return; }
+      const body = obj === null ? null : clone(obj);
+      this.enqueue(ref.path, () => body === null ? ref.delete() : ref.set(body));
+    } else if (this.kind === 'local') this.saveLocal();
+  },
+  enqueue(path, fn) {
+    let e = this.q.get(path);
+    if (!e) { e = { busy: false, next: null }; this.q.set(path, e); }
+    e.next = fn; setSaved('saving');
+    if (!e.busy) this.pump(e);
+  },
+  async pump(e) {
+    e.busy = true;
+    while (e.next) {
+      const fn = e.next; e.next = null;
+      try { await fn(); }
+      catch (err) {
+        if (err && err.code === 'unavailable') {
+          await new Promise(r => setTimeout(r, 800 + Math.random() * 800));
+          try { await fn(); } catch (e2) { setSaved('err', e2); }
+        } else if (this.kind === 'db' && err && err.code === 'invalid_argument' && lsOk()) {
+          this.kind = 'local'; this.q.clear(); e.busy = false; this.saveLocal();
+          toast('Tài khoản này không lưu được dữ liệu trên trang. Từ giờ dữ liệu được lưu trên trình duyệt này.');
+          return;
+        } else setSaved('err', err);
+      }
+    }
+    e.busy = false;
+    if ([...this.q.values()].every(x => !x.busy)) setSaved('ok');
+  }
+};
+function lsOk() { try { localStorage.setItem('pomo.t', '1'); localStorage.removeItem('pomo.t'); return true; } catch (e) { return false; } }
+function setSaved(st, err) {
+  const el = $('#saveState');
+  const where = Store.kind === 'fb' ? 'tài khoản Google' : Store.kind === 'db' ? 'tài khoản' : Store.kind === 'local' ? 'trình duyệt này' : 'bộ nhớ tạm';
+  el.classList.toggle('err', st === 'err');
+  if (st === 'saving') el.textContent = 'Đang lưu…';
+  else if (st === 'err') el.textContent = err && err.code === 'quota_exceeded' ? 'Đầy dung lượng, hãy xoá bớt dữ liệu cũ' : 'Chưa lưu được, thử lại sau';
+  else el.textContent = Store.kind === 'memory' ? 'Không lưu được: dữ liệu mất khi đóng trang' : `Đã lưu vào ${where}`;
+}
+const saveTask = t => Store.save('task', t.id, t);
+const saveNote = n => Store.save('note', n.id, n);
+const saveTimer = () => Store.save('timer', 'timer', S.timer);
+const saveSettings = () => Store.save('settings', 'settings', S.settings);
+const saveInbox = () => Store.save('inbox', 'inbox', { items: S.inbox });
+const _saveNoteSoon = debounce(n => saveNote(n), 700), _saveTaskSoon = debounce(t => saveTask(t), 700);
+const saveNoteSoon = n => { Store.touched = Date.now(); _saveNoteSoon(n); };
+const saveTaskSoon = t => { Store.touched = Date.now(); _saveTaskSoon(t); };
+
+/* ---------- derived ---------- */
+const pomoMs = t => (t.pomoMin || S.settings.focus) * 60000;
+const estMs = t => (t.est || 0) * pomoMs(t);
+function liveSpent(t) {
+  const tm = S.timer;
+  let ms = t.spentMs || 0;
+  if (tm.mode === 'focus' && tm.running && tm.taskId === t.id) ms += elapsed();
+  return ms;
+}
+const pct = t => estMs(t) > 0 ? liveSpent(t) / estMs(t) : 0;
+const isStale = t => t.status === 'doing' && t.startedAt && (Date.now() - t.startedAt) > S.settings.staleDays * 864e5;
+const staleDays = t => Math.floor((Date.now() - t.startedAt) / 864e5);
+const openTasks = () => Object.values(S.tasks).filter(t => t.status !== 'done');
+const sortTasks = arr => arr.sort((a, b) => QORDER[quadOf(a)] - QORDER[quadOf(b)] || (a.due || '9999').localeCompare(b.due || '9999') || (a.createdAt || 0) - (b.createdAt || 0));
+function elapsed() {
+  const tm = S.timer; if (!tm.running) return 0;
+  const now = Date.now();
+  return Math.max(0, now - tm.startedAt - (tm.pausedTotal || 0) - (tm.pausedAt ? now - tm.pausedAt : 0));
+}
+const remaining = () => S.timer.running ? S.timer.durMs - elapsed() : modeMs(S.timer.mode);
+const modeMs = m => (m === 'focus' ? S.settings.focus : m === 'short' ? S.settings.short : S.settings.long) * 60000;
+const isBreak = m => m === 'short' || m === 'long';
+
+/* ---------- time matrix (Eisenhower) ---------- */
+const QUADS = {
+  1: { name: 'Làm ngay', hint: 'Quan trọng · Khẩn cấp', tip: 'Xử lý trước. Ô này đầy thường là dấu hiệu việc ô 2 bị để trễ.', cls: 'q1' },
+  2: { name: 'Lên lịch', hint: 'Quan trọng · Chưa gấp', tip: 'Chọn ngày làm và đưa vào “Hôm nay” trước khi nó thành gấp.', cls: 'q2' },
+  3: { name: 'Làm gọn', hint: 'Không quan trọng · Khẩn cấp', tip: 'Gom lại làm một lượt, đặt giới hạn thời gian, làm vừa đủ.', cls: 'q3' },
+  4: { name: 'Bỏ bớt', hint: 'Không quan trọng · Chưa gấp', tip: 'Cân nhắc xoá hoặc để sau. Không nên đưa vào “Hôm nay”.', cls: 'q4' },
+  0: { name: 'Chưa phân loại', hint: 'Chưa chọn mức quan trọng', tip: 'Kéo vào một ô, hoặc bấm “Chuyển” để chọn.', cls: 'q0' }
+};
+const QORDER = { 1: 0, 2: 1, 3: 2, 4: 3, 0: 4 };
+function daysUntil(due) { const a = new Date(dayStr() + 'T00:00'), b = new Date(due + 'T00:00'); return Math.round((b - a) / 864e5); }
+function isUrgent(t) { return t.due ? daysUntil(t.due) <= S.settings.urgentDays : !!t.urgentManual; }
+function quadOf(t) { if (t.important !== true && t.important !== false) return 0; return t.important ? (isUrgent(t) ? 1 : 2) : (isUrgent(t) ? 3 : 4); }
+function migrateTask(t) {
+  if (t.important === undefined) { t.important = t.priority === 3 ? true : null; t.urgentManual = false; return true; }
+  return false;
+}
+/* Record real quadrant changes (e.g. a Lên lịch task becoming Làm ngay as its deadline nears). Runs on a timer, writes only on change. */
+function trackQuadrants() {
+  Object.values(S.tasks).forEach(t => {
+    if (t.status === 'done') return;
+    const q = quadOf(t);
+    if (t.q === q) return;
+    if (t.q === 2 && q === 1 && t.due && !t.slipAt) t.slipAt = Date.now();
+    t.q = q; saveTask(t);
+  });
+}
+function setQuadrant(t, q) {
+  if (q === 0) { t.important = null; }
+  else {
+    t.important = q === 1 || q === 2;
+    const wantUrgent = q === 1 || q === 3;
+    if (t.due) {
+      if (isUrgent(t) !== wantUrgent) toast(`Mức khẩn cấp của “${t.title}” đang tính theo hạn chót (${fmtDue(t.due)}, ngưỡng ${S.settings.urgentDays} ngày). Đổi hạn chót nếu muốn chuyển sang ô ${QUADS[q].name}.`);
+    } else t.urgentManual = wantUrgent;
+  }
+  t.slipAt = 0; t.q = quadOf(t); saveTask(t);
+  if (t.today && t.q === 4 && t.status !== 'done') toast(`“${t.title}” đang ở ô Bỏ bớt nhưng vẫn nằm trong “Hôm nay”.`);
+}
+function quadBadge(t) {
+  const q = quadOf(t);
+  return `<button class="qb ${QUADS[q].cls}" data-act="quad" title="${QUADS[q].hint}. Bấm để chuyển ô">${q ? 'Ô' + q + ' · ' : ''}${QUADS[q].name}</button>`;
+}
+function quadMenu(t) {
+  return `<div class="qmenu" role="menu">${[1, 2, 3, 4, 0].map(q => `<button role="menuitem" class="qm ${QUADS[q].cls}" data-setq="${q}"${quadOf(t) === q ? ' aria-current="true"' : ''}><b>${q ? 'Ô' + q + ' · ' : ''}${QUADS[q].name}</b><span>${QUADS[q].hint}</span></button>`).join('')}
+    ${t.due ? `<p class="qnote">Khẩn cấp đang tính theo hạn chót ${fmtDue(t.due)} (còn ${daysUntil(t.due)} ngày).</p>` : ''}</div>`;
+}
+const qLabel = q => q ? `Ô${q} · ${QUADS[q].name}` : QUADS[0].name;
+/* Two small switches (importance, urgency) instead of five quadrant cards. Urgency is read-only when a deadline decides it. */
+function qSel(id, p, imp, urg, due) {
+  const autoU = !!due, effU = due ? daysUntil(due) <= S.settings.urgentDays : !!urg;
+  const q = imp === true || imp === false ? (imp ? (effU ? 1 : 2) : (effU ? 3 : 4)) : 0;
+  const seg = (attr, opts, cur, dis) => `<div class="segs${dis ? ' auto' : ''}" role="radiogroup">${opts.map(([v, l]) => `<button type="button" role="radio" data-${attr}="${v}" aria-checked="${cur === v}"${dis ? ' disabled' : ''}>${l}</button>`).join('')}</div>`;
+  const impV = imp === true ? '1' : imp === false ? '0' : '';
+  let note = '';
+  if (due) { const n = daysUntil(due); note = `Tình trạng tự tính theo hạn chót ${fmtDue(due)} (${n < 0 ? `quá hạn ${-n} ngày` : n === 0 ? 'hạn hôm nay' : `còn ${n} ngày`}; khẩn cấp khi còn ≤ ${S.settings.urgentDays} ngày).`; }
+  else if (!q) note = 'Chưa chọn mức quan trọng: việc nằm ở khay “Chưa phân loại”.';
+  return `<div class="qsel" id="${id}">
+    <div class="qrow"><span class="field-label">Mức độ quan trọng</span>${seg(p + 'imp', [['1', 'Quan trọng'], ['0', 'Không quan trọng'], ['', 'Chưa rõ']], impV)}</div>
+    <div class="qrow"><span class="field-label">Tình trạng${autoU ? ' · theo hạn' : ''}</span>${seg(p + 'urg', [['1', 'Khẩn cấp'], ['0', 'Chưa gấp']], effU ? '1' : '0', autoU)}</div>
+    <div class="qresult"><span>Vào</span><span class="qb q${q}" style="cursor:default">${qLabel(q)}</span>${note ? `<span>${note}</span>` : ''}</div></div>`;
+}
+/* One "Phân loại" field: a button that opens the 4 quadrants. A note appears only when the deadline decides urgency. */
+function qNote(q, due) {
+  if (!due) return '';
+  const n = daysUntil(due), urgent = n <= S.settings.urgentDays;
+  const when = n < 0 ? `đã quá hạn ${-n} ngày` : n === 0 ? 'hạn là hôm nay' : `còn ${n} ngày`;
+  if (!q) return '';
+  const target = q <= 2 ? (urgent ? 1 : 2) : (urgent ? 3 : 4);
+  return target === q ? '' : `<b>Hạn ${fmtDue(due)} ${when} nên việc sẽ vào ${qLabel(target)}</b> thay vì ${qLabel(q)}. Đổi hạn chót nếu muốn giữ ô đã chọn.`;
+}
+function qField(id, p, q) {
+  return `<div class="qfield" id="${id}"><span class="field-label">Phân loại</span>
+    <button type="button" class="qbtn" data-qopen="${p}" aria-haspopup="menu"><span class="qb q${q}">${qLabel(q)}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>`;
+}
+function qFieldMenu(p, q) {
+  return `<div class="qmenu" role="menu">${[1, 2, 3, 4].map(k => `<button type="button" role="menuitem" class="qm ${QUADS[k].cls}" data-qpick="${p}:${k}"${q === k ? ' aria-current="true"' : ''}><b>${qLabel(k)}</b><span>${QUADS[k].hint}</span></button>`).join('')}</div>`;
+}
+function toggleQMenu(btn, p, q) {
+  const host = btn.closest('.qfield'), had = host.querySelector('.qmenu');
+  $$('.qmenu').forEach(m => m.remove());
+  if (!had) { host.insertAdjacentHTML('beforeend', qFieldMenu(p, q)); (host.querySelector('.qmenu [aria-current]') || host.querySelector('.qmenu button')).focus(); }
+}
+function refreshAddQ() {
+  const due = $('#addDue') ? $('#addDue').value : '';
+  const el = $('#addQ'); if (el) el.outerHTML = qField('addQ', 'a', UI.addQ);
+  const h = $('#addQHint'); if (h) { h.innerHTML = qNote(UI.addQ, due); h.hidden = !h.innerHTML; }
+}
+function refreshDrawerQ(t) {
+  const el = $('#dQ'); if (el) el.outerHTML = qField('dQ', 'd', quadOf(t));
+  const h = $('#dQHint'); if (h) { const n = t.due ? `Tình trạng khẩn cấp đang tính theo hạn chót ${fmtDue(t.due)} (khẩn cấp khi còn ≤ ${S.settings.urgentDays} ngày).` : ''; h.innerHTML = n; h.hidden = !n; }
+}
+function qPicker(sel, attr, hintId, due) {
+  return `<div class="qpick-wrap"><span class="field-label">Xếp vào ô</span><div class="qpick" role="radiogroup" aria-label="Ô trong ma trận">${[1, 2, 3, 4, 0].map(q => `<button type="button" role="radio" class="qp q${q}" data-${attr}="${q}" aria-checked="${sel === q}"><b>${qLabel(q)}</b><span>${QUADS[q].hint}</span></button>`).join('')}</div><div class="qhint" id="${hintId}">${qHintText(sel, due)}</div></div>`;
+}
+/* Tell the user up front when the deadline will override the urgency implied by the chosen quadrant. */
+function qHintText(q, due) {
+  if (!due) return q ? '' : 'Chưa chọn ô: việc sẽ nằm ở khay “Chưa phân loại” trong tab Ma trận.';
+  const n = daysUntil(due), urgent = n <= S.settings.urgentDays;
+  const when = n < 0 ? `đã quá hạn ${-n} ngày` : n === 0 ? 'hạn là hôm nay' : `còn ${n} ngày`;
+  if (!q) return `Hạn ${fmtDue(due)} ${when}, nên việc tính là ${urgent ? 'khẩn cấp' : 'chưa gấp'}.`;
+  const target = q <= 2 ? (urgent ? 1 : 2) : (urgent ? 3 : 4);
+  if (target === q && urgent) return `Hạn ${fmtDue(due)} ${when}, nên việc tính là khẩn cấp.`;
+  return target === q ? `Hạn ${fmtDue(due)} ${when}. Khi hạn còn ${S.settings.urgentDays} ngày trở xuống, việc tự chuyển sang ô khẩn cấp.` : `<b>Hạn ${fmtDue(due)} ${when}, nên việc sẽ vào ${qLabel(target)}</b> thay vì ${qLabel(q)}. Đổi hạn chót nếu muốn giữ ô này.`;
+}
+function updateQHint(id, q, due) { const el = document.getElementById(id); if (el) el.innerHTML = qHintText(q, due); }
+function syncDrawerQ(t) {
+  $$('#drawerRoot [data-dq]').forEach(b => b.setAttribute('aria-checked', String(+b.dataset.dq === quadOf(t))));
+  updateQHint('dQHint', quadOf(t), t.due);
+}
+/* Time allocation: planned = remaining estimate of open tasks; actual = focus minutes from session logs. */
+function allocPlanned() {
+  const r = { 1: 0, 2: 0, 3: 0, 4: 0, 0: 0 };
+  openTasks().forEach(t => { r[quadOf(t)] += Math.max(0, estMs(t) - (t.spentMs || 0)); });
+  return r;
+}
+function allocActual(days) {
+  const r = { 1: 0, 2: 0, 3: 0, 4: 0, 0: 0, none: 0 }; let guessed = 0;
+  const from = dayStr(daysAgo(days - 1));
+  Object.values(S.days).filter(d => d.date >= from).forEach(d => d.sessions.forEach(s => {
+    if (!s.taskId) { r.none += s.ms; return; }
+    let q = s.q;
+    if (q === undefined) { const t = S.tasks[s.taskId]; q = t ? quadOf(t) : 0; guessed += s.ms; }
+    r[q] += s.ms;
+  }));
+  return { r, guessed };
+}
+const hrs = ms => ms >= 3600000 ? `${(ms / 3600000).toFixed(1)} giờ` : `${Math.round(ms / 60000)} phút`;
+function allocBar(label, r, sub) {
+  const keys = [1, 2, 3, 4, 0, 'none'].filter(k => r[k] !== undefined);
+  const total = keys.reduce((s, k) => s + r[k], 0);
+  const cls = k => k === 'none' ? 'qn' : QUADS[k].cls;
+  const name = k => k === 'none' ? 'Không gắn việc' : (k ? `Ô${k} ${QUADS[k].name}` : 'Chưa phân loại');
+  return `<div class="alloc"><div class="alloc-h"><b>${label}</b><span>${total ? hrs(total) : 'chưa có dữ liệu'}${sub ? ' · ' + sub : ''}</span></div>
+    <div class="abar">${total ? keys.filter(k => r[k] > 0).map(k => `<span class="${cls(k)}" style="flex:${r[k]}" title="${name(k)}: ${hrs(r[k])} (${Math.round(r[k] / total * 100)}%)"></span>`).join('') : '<span class="empty-bar"></span>'}</div>
+    ${total ? `<div class="alegend">${keys.filter(k => r[k] > 0).map(k => `<span><i class="${cls(k)}"></i>${name(k)} <b>${Math.round(r[k] / total * 100)}%</b></span>`).join('')}</div>` : ''}</div>`;
+}
+function matrixItem(t) {
+  const sp = liveSpent(t) / pomoMs(t), p = subProgress(t);
+  const overdue = t.due && t.due < dayStr();
+  return `<li class="mitem" draggable="true" data-id="${esc(t.id)}">
+    <div class="mi-main"><span class="mi-title" data-act="open">${esc(t.title)}</span>
+    <span class="mi-meta">${t.due ? `<span class="${overdue ? 'overdue' : ''}">Hạn ${fmtDue(t.due)}</span>` : ''}<span>${sp.toFixed(1)}/${t.est || '?'} phiên</span>${p !== null ? `<span>${p}%</span>` : ''}${t.slipAt && quadOf(t) === 1 ? '<span class="slip" title="Việc này từng ở ô Lên lịch và chuyển sang Làm ngay vì sắp tới hạn">Trượt từ ô 2</span>' : ''}${t.today ? '<span class="tday">Hôm nay</span>' : ''}</span></div>
+    <div class="t-act"><button class="icon${t.today ? ' on' : ''}" data-act="today" aria-label="${t.today ? 'Bỏ khỏi hôm nay' : 'Thêm vào hôm nay'}" title="${t.today ? 'Bỏ khỏi hôm nay' : 'Thêm vào hôm nay'}">${ICON.sun}</button><button class="btn small ghost" data-act="quad">Chuyển</button></div></li>`;
+}
+function viewMatrix() {
+  const open = openTasks();
+  const by = { 1: [], 2: [], 3: [], 4: [], 0: [] };
+  sortTasks(open).forEach(t => by[quadOf(t)].push(t));
+  const sumP = arr => arr.reduce((s, t) => s + Math.max(0, (t.est || 0) - liveSpent(t) / pomoMs(t)), 0);
+  const a7 = allocActual(7), a30 = allocActual(30);
+  let h = `<div class="card"><h3>Phân bổ thời gian</h3>
+    ${allocBar('Kế hoạch còn lại', allocPlanned(), 'từ ước lượng của việc chưa xong')}
+    ${allocBar('Thực tế 7 ngày', a7.r, a7.guessed ? `${hrs(a7.guessed)} ước tính` : '')}
+    ${allocBar('Thực tế 30 ngày', a30.r, a30.guessed ? `${hrs(a30.guessed)} ước tính` : '')}
+    <p class="note">Thực tế lấy từ thời gian các phiên tập trung đã ghi. Phần “ước tính” là các phiên ghi trước khi có ma trận nên được xếp theo ô hiện tại của việc, có thể khác ô lúc bạn làm.</p></div>`;
+  const q1Left = sumP(by[1]);
+  if (q1Left > S.settings.budget) h += `<div class="warn">Ô Làm ngay đang cần ${q1Left.toFixed(1)} phiên, nhiều hơn quỹ ${S.settings.budget} phiên/ngày.</div>`;
+  h += `<div class="matrix"><div class="axis-top"><span>Khẩn cấp</span><span>Chưa gấp</span></div>
+    <div class="axis-side"><span>Quan trọng</span><span>Không quan trọng</span></div>
+    <div class="mgrid">${[1, 2, 3, 4].map(q => `<section class="mcell ${QUADS[q].cls}" data-q="${q}" aria-label="Ô ${q} ${QUADS[q].name}">
+      <header><div><h3>Ô${q} · ${QUADS[q].name}</h3><span class="mh">${QUADS[q].hint}</span></div><span class="mcount">${by[q].length} việc · ${sumP(by[q]).toFixed(1)} phiên</span></header>
+      <p class="mtip">${QUADS[q].tip}</p>
+      <ul class="mlist">${by[q].map(matrixItem).join('') || '<li class="mempty">Trống</li>'}</ul>
+      <form class="madd" data-q="${q}"><input type="text" placeholder="+ Thêm việc vào ô này" aria-label="Thêm việc vào ô ${q} ${QUADS[q].name}" autocomplete="off"></form></section>`).join('')}</div></div>`;
+  h += `<section class="mcell q0 tray" data-q="0" aria-label="Chưa phân loại"><header><div><h3>Chưa phân loại</h3><span class="mh">${by[0].length ? 'Kéo vào ô phù hợp, hoặc bấm “Chuyển”' : 'Mọi việc đã được xếp ô'}</span></div><span class="mcount">${by[0].length} việc</span></header>
+    ${by[0].length ? `<ul class="mlist">${by[0].map(matrixItem).join('')}</ul>` : ''}</section>`;
+  return h;
+}
+
+/* ---------- timer ---------- */
+function startMode(mode, taskId) {
+  const tm = S.timer;
+  Object.assign(tm, { mode, running: true, startedAt: Date.now(), durMs: modeMs(mode), pausedAt: 0, pausedTotal: 0 });
+  if (mode === 'focus') {
+    tm.taskId = taskId ?? tm.taskId ?? '';
+    const t = S.tasks[tm.taskId];
+    if (t) {
+      let ch = false;
+      if (t.status === 'todo') { t.status = 'doing'; ch = true; }
+      if (!t.startedAt) { t.startedAt = Date.now(); ch = true; }
+      if (!t.today) { t.today = true; ch = true; }
+      if (ch) saveTask(t);
+    }
+    UI.stopOpen = false;
+  } else {
+    pickQuote('break');
+  }
+  saveTimer(); renderAll(); primeAudio();
+}
+function togglePause() {
+  const tm = S.timer; if (!tm.running) return;
+  if (tm.pausedAt) { tm.pausedTotal += Date.now() - tm.pausedAt; tm.pausedAt = 0; }
+  else tm.pausedAt = Date.now();
+  saveTimer(); renderTimer();
+}
+function logSession(taskId, ms, done, reason) {
+  const d = dayStr(new Date(S.timer.startedAt || Date.now()));
+  const day = S.days[d] || (S.days[d] = { date: d, sessions: [] });
+  const t = S.tasks[taskId];
+  day.sessions.push({ taskId: taskId || '', title: t ? t.title : '', start: S.timer.startedAt, ms: Math.round(ms), done, reason: reason || '', q: t ? quadOf(t) : 0 });
+  Store.save('day', d, day);
+}
+function endFocus(completed, reason, noAuto) {
+  const tm = S.timer;
+  const ms = Math.min(elapsed(), tm.durMs);
+  const t = S.tasks[tm.taskId];
+  if (t) { t.spentMs = (t.spentMs || 0) + ms; saveTask(t); }
+  logSession(tm.taskId, ms, completed, reason);
+  tm.running = false; tm.pausedAt = 0; tm.pausedTotal = 0;
+  UI.stopOpen = false;
+  if (completed) {
+    tm.cycle = (tm.cycle || 0) + 1;
+    const next = tm.cycle % S.settings.longEvery === 0 ? 'long' : 'short';
+    chime(3);
+    if (S.settings.autoBreak && !noAuto) { startMode(next); toast(`Xong một phiên tập trung${t ? ` cho “${t.title}”` : ''}. Nghỉ ${next === 'long' ? S.settings.long : S.settings.short} phút nhé.`); return; }
+    tm.mode = next; pickQuote('break');
+  } else {
+    tm.mode = 'focus';
+  }
+  saveTimer(); renderAll();
+}
+function endBreak(skipped) {
+  const tm = S.timer;
+  tm.running = false; tm.mode = 'focus'; tm.pausedAt = 0; tm.pausedTotal = 0;
+  if (!skipped) { chime(2); toast('Hết giờ nghỉ. Sẵn sàng cho phiên tiếp theo.'); }
+  saveTimer(); renderAll();
+}
+function switchTaskAndStart(taskId) {
+  const tm = S.timer;
+  if (tm.running && tm.mode === 'focus') {
+    if (tm.taskId === taskId) return;
+    const ms = Math.min(elapsed(), tm.durMs);
+    const t = S.tasks[tm.taskId];
+    if (t) { t.spentMs = (t.spentMs || 0) + ms; saveTask(t); }
+    logSession(tm.taskId, ms, false, 'Chuyển việc');
+  }
+  startMode('focus', taskId);
+}
+
+/* ---------- overrun reminders ---------- */
+const LEVELS = [0.8, 1, 1.5];
+function checkOverrun() {
+  const tm = S.timer;
+  if (!(tm.running && tm.mode === 'focus' && !tm.pausedAt)) return;
+  const t = S.tasks[tm.taskId]; if (!t || !t.est || t.status === 'done') return;
+  const p = pct(t); t.alerts = t.alerts || {};
+  for (let i = LEVELS.length - 1; i >= 0; i--) {
+    const k = String(LEVELS[i]);
+    if (p >= LEVELS[i] && !t.alerts[k]) {
+      LEVELS.forEach(l => { if (l <= LEVELS[i]) t.alerts[String(l)] = true; });
+      saveTask(t);
+      if (LEVELS[i] < 1) {
+        const left = estMs(t) - liveSpent(t);
+        toast(`“${t.title}” đã dùng ${Math.round(p * 100)}% thời gian dự kiến. Còn khoảng ${fmtMin(left)} theo kế hoạch.`);
+        chime(1);
+      } else {
+        UI.alert = { taskId: t.id, level: LEVELS[i], q: randomQuote(['uoc-luong', 'kien-nhan']) };
+        chime(2); renderAlert(); renderView();
+      }
+      break;
+    }
+  }
+}
+function resetAlerts(t) {
+  const p = pct(t); t.alerts = {};
+  LEVELS.forEach(l => { if (p >= l) t.alerts[String(l)] = true; });
+}
+function alertAction(action, extra) {
+  const a = UI.alert; if (!a) return;
+  const t = S.tasks[a.taskId]; if (!t) { UI.alert = null; renderAlert(); return; }
+  const label = { reest: `Ước lượng lại thành ${extra} phiên`, split: 'Chia nhỏ', park: 'Tạm gác', cont: 'Tiếp tục' }[action];
+  t.log = t.log || []; t.log.push({ at: Date.now(), pct: Math.round(pct(t) * 100), action: label });
+  if (action === 'reest') { t.est = extra; t.pomoMin = S.settings.focus; resetAlerts(t); }
+  saveTask(t);
+  UI.alert = null; renderAlert();
+  if (action === 'split') openDrawer(t.id, 'subs');
+  if (action === 'park') {
+    t.today = false; t.status = 'todo'; saveTask(t);
+    if (S.timer.running && S.timer.mode === 'focus' && S.timer.taskId === t.id) endFocus(false, 'Tạm gác');
+    toast(`Đã gác “${t.title}” khỏi danh sách hôm nay.`);
+  }
+  renderAll();
+}
+
+/* ---------- quotes ---------- */
+function quotePool(themes) {
+  const st = S.settings;
+  const own = (st.customQuotes || []).map(q => ({ ...q, th: 'own' }));
+  const th = themes || st.themes;
+  let pool = QUOTES.filter(q => th.includes(q.th)).concat(own).filter(q => !(st.hiddenQuotes || []).includes(q.id));
+  if (!pool.length) pool = QUOTES.concat(own).filter(q => !(st.hiddenQuotes || []).includes(q.id));
+  return pool;
+}
+function randomQuote(themes) {
+  const pool = quotePool(themes); if (!pool.length) return null;
+  const fresh = pool.filter(q => !UI.recentQ.includes(q.id));
+  const src = fresh.length ? fresh : pool;
+  const q = src[Math.floor(Math.random() * src.length)];
+  UI.recentQ.push(q.id); if (UI.recentQ.length > 6) UI.recentQ.shift();
+  return q;
+}
+function pickQuote() { UI.quote = randomQuote(); }
+
+/* ---------- sound ---------- */
+let AC = null;
+function primeAudio() { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) {} }
+function chime(n) {
+  if (!S.settings.sound || !AC) return;
+  try {
+    for (let i = 0; i < n; i++) {
+      const o = AC.createOscillator(), g = AC.createGain(), t0 = AC.currentTime + i * 0.35;
+      o.type = 'sine'; o.frequency.value = i % 2 ? 660 : 880;
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.3);
+      o.connect(g).connect(AC.destination); o.start(t0); o.stop(t0 + 0.32);
+    }
+  } catch (e) {}
+}
+
+/* ---------- toast ---------- */
+function toast(msg, q) {
+  const el = document.createElement('div'); el.className = 'toast';
+  const m = document.createElement('div'); m.textContent = msg; el.appendChild(m);
+  if (q) { const qq = document.createElement('div'); qq.className = 'tq'; qq.textContent = `“${q.t}”${q.by ? ' — ' + q.by : ''}`; el.appendChild(qq); }
+  $('#toasts').appendChild(el);
+  setTimeout(() => el.remove(), q ? 8000 : 5500);
+}
+
+/* ---------- task ops ---------- */
+function addTask(o) {
+  const t = { id: newId(), title: o.title.trim(), est: o.est || 0, pomoMin: S.settings.focus, spentMs: 0, status: 'todo', priority: 2, important: o.important === undefined ? null : o.important, urgentManual: !!o.urgentManual, tag: (o.tag || '').trim(), due: o.due || '', today: !!o.today, note: '', subtasks: [], createdAt: Date.now(), startedAt: 0, doneAt: 0, alerts: {}, log: [] };
+  t.q = quadOf(t); S.tasks[t.id] = t; saveTask(t); return t;
+}
+function toggleDone(id) {
+  const t = S.tasks[id]; if (!t) return;
+  if (t.status === 'done') { t.status = t.startedAt ? 'doing' : 'todo'; t.doneAt = 0; }
+  else {
+    if (S.timer.running && S.timer.mode === 'focus' && S.timer.taskId === id) endFocus(false, 'Hoàn thành sớm');
+    t.status = 'done'; t.doneAt = Date.now();
+    const sp = (t.spentMs || 0) / pomoMs(t);
+    const msg = t.est ? `Xong “${t.title}”: ${sp.toFixed(1)} phiên, dự kiến ${t.est}.` : `Xong “${t.title}”.`;
+    toast(msg, randomQuote());
+  }
+  saveTask(t); renderAll();
+}
+function deleteTask(id) {
+  delete S.tasks[id]; Store.save('task', id, null);
+  if (S.timer.taskId === id) { S.timer.taskId = ''; saveTimer(); }
+  if (UI.alert && UI.alert.taskId === id) UI.alert = null;
+  closeDrawer(); renderAll();
+}
+function loadExamples() {
+  const tag = 'ví dụ';
+  addTask({ title: '[Ví dụ] Viết brief chiến dịch ra mắt BST', est: 3, important: true, tag, today: true, due: dayStr(daysAgo(-1)) });
+  addTask({ title: '[Ví dụ] Duyệt 20 video KOC tuần này', est: 2, important: false, urgentManual: true, tag, today: true });
+  addTask({ title: '[Ví dụ] Đọc báo cáo doanh số tháng', est: 1, important: true, tag, today: false });
+  toast('Đã thêm 3 việc ví dụ (tag “ví dụ”). Xoá chúng bất cứ lúc nào trong phần chi tiết.');
+  renderAll();
+}
+
+/* ---------- rendering: timer ---------- */
+const CIRC = 2 * Math.PI * 88;
+function renderTimer() {
+  const tm = S.timer, box = $('#timer');
+  box.dataset.kind = isBreak(tm.mode) ? 'break' : 'focus';
+  box.classList.toggle('paused', !!tm.pausedAt);
+  $$('.mode', box).forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.mode === tm.mode)); b.disabled = tm.running; });
+  // task select
+  const sel = $('#taskSel');
+  const open = sortTasks(openTasks());
+  const today = open.filter(t => t.today), rest = open.filter(t => !t.today);
+  const opt = t => `<option value="${esc(t.id)}"${t.id === tm.taskId ? ' selected' : ''}>${esc(t.title)}</option>`;
+  sel.innerHTML = `<option value="">Không gắn việc cụ thể</option>` +
+    (today.length ? `<optgroup label="Hôm nay">${today.map(opt).join('')}</optgroup>` : '') +
+    (rest.length ? `<optgroup label="Việc khác">${rest.map(opt).join('')}</optgroup>` : '');
+  if (tm.taskId && !S.tasks[tm.taskId]) sel.value = '';
+  sel.disabled = tm.running && tm.mode === 'focus';
+  sel.closest('div').hidden = isBreak(tm.mode);
+  const main = $('#btnMain'), stop = $('#btnStop');
+  if (!tm.running) { main.textContent = tm.mode === 'focus' ? 'Bắt đầu tập trung' : `Bắt đầu ${tm.mode === 'long' ? 'nghỉ dài' : 'nghỉ ngắn'}`; stop.hidden = !isBreak(tm.mode); stop.textContent = 'Bỏ qua, tập trung luôn'; }
+  else { main.textContent = tm.pausedAt ? 'Tiếp tục' : 'Tạm dừng'; stop.hidden = false; stop.textContent = tm.mode === 'focus' ? 'Dừng phiên' : 'Bỏ qua giờ nghỉ'; }
+  $('#stopPanel').hidden = !(UI.stopOpen && tm.running && tm.mode === 'focus');
+  $('#reasonChips').innerHTML = REASONS.map(r => `<button class="chip" data-reason="${esc(r)}">${esc(r)}</button>`).join('');
+  tick(true);
+  renderQuoteArea(); renderInbox();
+}
+function tick(noCheck) {
+  const tm = S.timer;
+  if (tm.running && !tm.pausedAt && remaining() <= 0) {
+    if (tm.mode === 'focus') endFocus(true); else endBreak(false);
+    return;
+  }
+  const rem = remaining();
+  $('#clock').textContent = fmtClock(rem);
+  const frac = tm.running ? Math.min(1, elapsed() / tm.durMs) : 0;
+  const ring = $('#ring'); ring.style.strokeDasharray = CIRC; ring.style.strokeDashoffset = CIRC * (1 - frac);
+  const label = tm.mode === 'focus' ? 'Tập trung' : tm.mode === 'short' ? 'Nghỉ ngắn' : 'Nghỉ dài';
+  const n = (tm.cycle || 0) % S.settings.longEvery;
+  $('#clockSub').textContent = tm.running ? (tm.pausedAt ? 'Đang tạm dừng' : label) : (tm.mode === 'focus' ? `Phiên ${n + 1}/${S.settings.longEvery} trong chu kỳ` : 'Sẵn sàng nghỉ');
+  document.title = tm.running ? `${fmtClock(rem)} · ${label}` : 'Phiên Làm Việc';
+  const t = S.tasks[tm.taskId];
+  $('#taskProg').textContent = t && !isBreak(tm.mode) ? `Đã làm ${(liveSpent(t) / pomoMs(t)).toFixed(1)}${t.est ? ` / ${t.est} phiên dự kiến` : ' phiên (chưa ước lượng)'}` : '';
+  if (!noCheck) checkOverrun();
+}
+
+function renderQuoteArea() {
+  const tm = S.timer, el = $('#quoteArea');
+  if (tm.running && tm.mode === 'focus') {
+    const t = S.tasks[tm.taskId];
+    el.innerHTML = `<p class="focus-note">${t ? `Đang tập trung vào <strong>${esc(t.title)}</strong>.` : 'Đang trong phiên tập trung.'} Câu trích dẫn sẽ quay lại vào giờ nghỉ.</p>`;
+    return;
+  }
+  const q = UI.quote;
+  if (!q) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="quote quote-card"><blockquote>“${esc(q.t)}”</blockquote><div class="by">${q.by ? `<span>${esc(q.by)}</span>` : ''}<button class="link" data-q="next">Câu khác</button><button class="link" data-q="hide">Không hiện câu này nữa</button></div></div>`;
+}
+function renderInbox() {
+  const focusing = S.timer.running && S.timer.mode === 'focus';
+  const ul = $('#inboxList');
+  if (!S.inbox.length) { ul.innerHTML = ''; return; }
+  if (focusing) { ul.innerHTML = `<li><span class="hint">${S.inbox.length} mục đang chờ. Xử lý vào giờ nghỉ.</span></li>`; return; }
+  ul.innerHTML = S.inbox.map(it => `<li data-id="${esc(it.id)}"><span>${esc(it.text)}</span><span class="acts"><button class="btn small" data-ib="task">Thành việc</button><button class="btn small" data-ib="note">Thành ghi chú</button><button class="btn small ghost" data-ib="del" aria-label="Xoá">Xoá</button></span></li>`).join('');
+}
+function renderAlert() {
+  const box = $('#alertBox'), a = UI.alert;
+  if (!a || !S.tasks[a.taskId]) { box.hidden = true; box.innerHTML = ''; return; }
+  const t = S.tasks[a.taskId], p = Math.round(pct(t) * 100), sp = liveSpent(t);
+  const need = Math.max(t.est + 1, Math.ceil(sp / pomoMs(t)) + 1);
+  box.hidden = false; box.classList.toggle('hard', a.level >= 1.5);
+  box.innerHTML = `<h3>“${esc(t.title)}” đã dùng ${p}% thời gian dự kiến</h3>
+    <div class="nums">Dự kiến ${t.est} phiên (${fmtMin(estMs(t))}) · Đã làm ${fmtMin(sp)}${subProgress(t) !== null ? ` · Các bước mới xong ${subProgress(t)}%` : ''}${a.level >= 1.5 ? ' · Việc này có vẻ lớn hơn một task, nên chia nhỏ' : ''}</div>
+    <div class="ctrls">
+      <button class="btn small" data-al="reest" data-v="${need}">Ước lượng lại: ${need} phiên</button>
+      <button class="btn small" data-al="reest" data-v="${need + 1}">${need + 1} phiên</button>
+      <button class="btn small" data-al="split">Chia nhỏ</button>
+      <button class="btn small" data-al="park">Tạm gác</button>
+      <button class="btn small ghost" data-al="cont">Tiếp tục</button>
+    </div>
+    ${a.q ? `<div class="q">“${esc(a.q.t)}”${a.q.by ? ' — ' + esc(a.q.by) : ''}</div>` : ''}`;
+}
+
+/* ---------- rendering: tasks ---------- */
+function statusPill(t) {
+  if (t.status === 'done') return '';
+  const out = [];
+  if (isStale(t)) out.push(`<span class="pill stale">Treo ${staleDays(t)} ngày</span>`);
+  if (t.est) {
+    const p = pct(t);
+    if (p >= 1) out.push(`<span class="pill over">Quá dự kiến ${Math.round((p - 1) * 100)}%</span>`);
+    else if (p >= 0.8) out.push(`<span class="pill near">Gần hết dự kiến</span>`);
+    const sp = subProgress(t), tp = p * 100;
+    if (sp !== null && p < 1 && tp >= 50 && tp - sp >= 25) out.push(`<span class="pill near" title="Đã dùng ${Math.round(tp)}% thời gian nhưng mới xong ${sp}% các bước">Tiến độ chậm hơn thời gian</span>`);
+  } else out.push(`<span class="pill stale">Chưa ước lượng</span>`);
+  return out.join('');
+}
+function pomoDots(t) {
+  const per = pomoMs(t), sp = liveSpent(t) / per, est = t.est || 0;
+  const n = Math.max(est, Math.ceil(sp));
+  if (!n) return '';
+  let h = '';
+  for (let i = 0; i < Math.min(n, 16); i++) {
+    const fill = Math.max(0, Math.min(1, sp - i));
+    h += `<span class="pomo${i >= est ? ' extra' : ''}"><i style="transform:scaleX(${fill.toFixed(2)})"></i></span>`;
+  }
+  return `<div class="pomos" aria-label="Đã làm ${sp.toFixed(1)} trên ${est} phiên">${h}<span class="n">${sp.toFixed(1)}/${est || '?'}</span></div>`;
+}
+/* Each subtask carries an equal share of the parent; shares are whole percents that sum to 100. */
+function subWeights(n) {
+  if (!n) return [];
+  const base = Math.floor(100 / n), w = Array(n).fill(base);
+  for (let i = 0; i < 100 - base * n; i++) w[n - 1 - i]++;
+  return w;
+}
+function subProgress(t) {
+  const subs = t.subtasks || []; if (!subs.length) return null;
+  const w = subWeights(subs.length);
+  return subs.reduce((s, x, i) => s + (x.done ? w[i] : 0), 0);
+}
+function subsBlock(t) {
+  const subs = t.subtasks || [], w = subWeights(subs.length), p = subProgress(t);
+  const timeP = t.est ? Math.round(pct(t) * 100) : null;
+  let h = '<div class="subs-inline">';
+  if (p !== null) {
+    h += `<div class="prog"><div class="bar" role="img" aria-label="Tiến độ ${p}%"><span style="width:${p}%"></span></div><span class="pl">Tiến độ <b>${p}%</b>${timeP !== null ? ` · đã dùng ${timeP}% thời gian dự kiến` : ''}</span></div>`;
+    h += `<ul class="sl">${subs.map((s, i) => `<li class="${s.done ? 'done' : ''}" data-sid="${esc(s.id)}"><label><input type="checkbox" data-sact="toggle"${s.done ? ' checked' : ''}><span>${esc(s.t)}</span></label><span class="w">${w[i]}%</span><button class="x" data-sact="del" aria-label="Xoá bước “${esc(s.t)}”" title="Xoá bước">×</button></li>`).join('')}</ul>`;
+  }
+  if (t.status !== 'done') h += `<form class="sadd" data-tid="${esc(t.id)}"><input type="text" placeholder="+ Thêm bước nhỏ, Enter để lưu" aria-label="Thêm bước nhỏ cho “${esc(t.title)}”" autocomplete="off"></form>`;
+  return h + '</div>';
+}
+function taskRow(t) {
+  const tm = S.timer, active = tm.running && tm.mode === 'focus' && tm.taskId === t.id;
+  const overdue = t.due && t.status !== 'done' && t.due < dayStr();
+  const prio = quadBadge(t) + (t.slipAt && quadOf(t) === 1 ? '<span class="slip" title="Việc này từng ở ô Lên lịch và chuyển sang Làm ngay vì sắp tới hạn">Trượt từ ô 2</span>' : '');
+  const subs = '';
+  return `<li class="task${t.status === 'done' ? ' done' : ''}${active ? ' active' : ''}" data-id="${esc(t.id)}">
+    <button class="box" data-act="done" aria-label="${t.status === 'done' ? 'Bỏ đánh dấu xong' : 'Đánh dấu xong'}">${ICON.check}</button>
+    <div style="min-width:0">
+      <div class="t-title" data-act="open">${esc(t.title)}</div>
+      <div class="t-meta">${t.tag ? `<span class="tag">${esc(t.tag)}</span>` : ''}${prio}${t.due ? `<span class="${overdue ? 'overdue' : ''}">Hạn ${fmtDue(t.due)}</span>` : ''}${subs}${t.note ? '<span>Có ghi chú</span>' : ''}${statusPill(t)}</div>
+      ${pomoDots(t)}
+      ${subsBlock(t)}
+    </div>
+    <div class="t-act">
+      ${t.status !== 'done' ? `<button class="icon play" data-act="play" aria-label="Bắt đầu tập trung vào việc này" title="Tập trung vào việc này">${ICON.play}</button>
+      <button class="icon${t.today ? ' on' : ''}" data-act="today" aria-label="${t.today ? 'Bỏ khỏi hôm nay' : 'Thêm vào hôm nay'}" title="${t.today ? 'Bỏ khỏi hôm nay' : 'Thêm vào hôm nay'}">${ICON.sun}</button>` : ''}
+      <button class="icon" data-act="open" aria-label="Chi tiết" title="Chi tiết">${ICON.more}</button>
+    </div></li>`;
+}
+function addForm(todayDefault) {
+  return `<form class="add" id="addForm">
+    <div><label class="sr" for="addTitle">Việc mới</label><input type="text" id="addTitle" placeholder="Thêm việc mới…" autocomplete="off" required></div>
+    <div class="stepper" title="Số phiên dự kiến"><button type="button" data-step="-1" aria-label="Giảm số phiên dự kiến">−</button><output id="addEst">${UI.addEst ? UI.addEst + ' phiên' : 'Chưa rõ'}</output><button type="button" data-step="1" aria-label="Tăng số phiên dự kiến">+</button></div>
+    <button class="btn primary solid addbtn" type="submit">Thêm</button>
+    <div class="more">
+      <div><label class="field-label" for="addTag">Tag</label><input type="text" id="addTag" list="tagList" placeholder="RN, HPW…"></div>
+      <div><label class="field-label" for="addDue">Hạn chót</label><input type="date" id="addDue"></div>
+      ${qField('addQ', 'a', UI.addQ)}
+      <label class="check today-chk"><input type="checkbox" id="addToday"${todayDefault ? ' checked' : ''}> Làm hôm nay</label>
+      <div class="qhint" id="addQHint" hidden></div>
+    </div>
+    <datalist id="tagList">${[...new Set(Object.values(S.tasks).map(t => t.tag).filter(Boolean))].map(g => `<option value="${esc(g)}">`).join('')}</datalist>
+  </form>`;
+}
+function viewToday() {
+  const all = Object.values(S.tasks);
+  const today = sortTasks(all.filter(t => t.today && t.status !== 'done'));
+  const doneToday = all.filter(t => t.status === 'done' && t.doneAt && dayStr(new Date(t.doneAt)) === dayStr());
+  const stale = all.filter(t => isStale(t) && !t.today);
+  const d = S.days[dayStr()];
+  const donePomos = d ? d.sessions.filter(s => s.done).length : 0;
+  const leftPomos = today.reduce((s, t) => s + Math.max(0, (t.est || 0) - liveSpent(t) / pomoMs(t)), 0);
+  const budget = S.settings.budget;
+  const cap = Math.max(budget, donePomos + leftPomos) || 1;
+  const noEst = today.filter(t => !t.est).length;
+  let h = '';
+  h += addForm(true);
+  if (!all.length) {
+    h += `<div class="empty"><strong>Chưa có việc nào</strong><span>Thêm việc ở ô phía trên, đặt số phiên dự kiến, rồi bấm nút tam giác để bắt đầu tập trung. Ứng dụng sẽ nhắc khi một việc dùng quá thời gian dự kiến.</span><button class="btn" id="loadEx">Thêm 3 việc ví dụ để xem thử</button></div>`;
+    return h;
+  }
+  h += `<h3 class="sub">Danh sách hôm nay (${today.length})</h3>`;
+  h += today.length ? `<ul class="list">${today.map(taskRow).join('')}</ul>` : `<div class="empty"><span>Chưa chọn việc nào cho hôm nay. Bấm biểu tượng mặt trời ở tab “Tất cả việc” để kéo việc vào đây.</span></div>`;
+  if (stale.length) h += `<h3 class="sub">Treo lâu, chưa có trong hôm nay (${stale.length})</h3><ul class="list">${sortTasks(stale).map(taskRow).join('')}</ul>`;
+  if (doneToday.length) h += `<h3 class="sub">Đã xong hôm nay (${doneToday.length})</h3><ul class="list">${doneToday.map(taskRow).join('')}</ul>`;
+  return h;
+}
+function viewAll() {
+  const all = Object.values(S.tasks);
+  const tags = [...new Set(all.map(t => t.tag).filter(Boolean))].sort();
+  let list = all.filter(t => UI.filter === 'all' ? true : UI.filter === 'done' ? t.status === 'done' : t.status !== 'done');
+  if (UI.tagFilter) list = list.filter(t => t.tag === UI.tagFilter);
+  if (UI.quadFilter !== '') list = list.filter(t => quadOf(t) === +UI.quadFilter);
+  list = UI.filter === 'done' ? list.sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)) : sortTasks(list);
+  let h = addForm(false);
+  h += `<div class="filters"><span class="field-label" style="margin:0">Ô</span>${[['', 'Mọi ô'], ['1', 'Ô1 Làm ngay'], ['2', 'Ô2 Lên lịch'], ['3', 'Ô3 Làm gọn'], ['4', 'Ô4 Bỏ bớt'], ['0', 'Chưa phân loại']].map(([k, l]) => `<button class="seg${k !== '' ? ' q' + k : ''}" data-qf="${k}" aria-pressed="${UI.quadFilter === k}">${l}</button>`).join('')}</div>`;
+  h += `<div class="filters">${[['open', 'Chưa xong'], ['done', 'Đã xong'], ['all', 'Tất cả']].map(([k, l]) => `<button class="seg" data-filter="${k}" aria-pressed="${UI.filter === k}">${l}</button>`).join('')}
+    ${tags.length ? `<label class="field-label" for="tagFilter" style="margin:0 0 0 8px">Tag</label><select id="tagFilter"><option value="">Mọi tag</option>${tags.map(g => `<option${g === UI.tagFilter ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select>` : ''}</div>`;
+  if (!all.length) h += `<div class="empty"><strong>Chưa có việc nào</strong><button class="btn" id="loadEx">Thêm 3 việc ví dụ để xem thử</button></div>`;
+  else h += list.length ? `<ul class="list">${list.map(taskRow).join('')}</ul>` : `<div class="empty"><span>Không có việc nào khớp bộ lọc.</span></div>`;
+  return h;
+}
+
+/* ---------- notes (sheets) ---------- */
+const NCOLORS = { yellow: 'Vàng', green: 'Xanh lá', blue: 'Xanh dương', pink: 'Hồng', lilac: 'Tím nhạt' };
+function noteItems() {
+  const q = UI.noteQuery.trim().toLowerCase();
+  let items = [];
+  if (UI.noteKind !== 'task') items = items.concat(Object.values(S.notes).map(n => ({ kind: 'note', id: n.id, title: n.title, body: n.body || '', at: n.updatedAt || n.createdAt, color: n.color || 'yellow', pinned: !!n.pinned })));
+  if (UI.noteKind !== 'note') items = items.concat(Object.values(S.tasks).filter(t => t.note).map(t => ({ kind: 'task', id: t.id, title: t.title, body: t.note, at: t.noteAt || t.createdAt, color: 'task', pinned: false, done: t.status === 'done' })));
+  if (q) items = items.filter(i => ((i.title || '') + ' ' + i.body).toLowerCase().includes(q));
+  return items.sort((a, b) => (b.at || 0) - (a.at || 0));
+}
+const fmtNoteDate = at => { if (!at) return ''; const d = new Date(at); return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`; };
+function sheetCard(i) {
+  const empty = !i.title && !i.body;
+  return `<button class="sheet c-${i.color}${i.pinned ? ' pinned' : ''}" data-nk="${i.kind}" data-nid="${esc(i.id)}">
+    ${i.title ? `<span class="s-title">${esc(i.title)}</span>` : ''}
+    <span class="s-body">${empty ? '<span style="color:var(--muted)">Tờ trống</span>' : esc(i.body)}</span>
+    <span class="s-foot"><span>${i.kind === 'task' ? `<span class="s-kind">Ghi chú của việc${i.done ? ' đã xong' : ''}</span>` : (i.pinned ? 'Đã ghim' : '')}</span><span>${fmtNoteDate(i.at)}</span></span></button>`;
+}
+function boardHtml() {
+  const items = noteItems();
+  const pinned = items.filter(i => i.pinned), rest = items.filter(i => !i.pinned);
+  let h = '';
+  if (pinned.length) h += `<h3 class="board-h">Đã ghim</h3><div class="board">${pinned.map(sheetCard).join('')}</div><h3 class="board-h">Còn lại</h3>`;
+  const newCard = UI.noteKind !== 'task' && !UI.noteQuery ? `<button class="sheet new" id="newNoteCard">+ Tờ ghi chú mới</button>` : '';
+  h += `<div class="board">${newCard}${rest.map(sheetCard).join('')}</div>`;
+  if (!items.length && (UI.noteQuery || UI.noteKind === 'task')) h += `<div class="empty"><span>${UI.noteQuery ? 'Không tìm thấy tờ nào khớp.' : 'Chưa có việc nào có ghi chú. Viết ghi chú trong phần chi tiết của việc.'}</span></div>`;
+  return h;
+}
+function viewNotes() {
+  return `<div class="filters"><input type="search" id="noteSearch" placeholder="Tìm trong mọi tờ ghi chú" value="${esc(UI.noteQuery)}" style="flex:1;min-width:180px">
+    ${[['all', 'Tất cả'], ['note', 'Ghi chú riêng'], ['task', 'Của việc']].map(([k, l]) => `<button class="seg" data-nkind="${k}" aria-pressed="${UI.noteKind === k}">${l}</button>`).join('')}</div>
+    <div id="board">${boardHtml()}</div>`;
+}
+function newNote(title, body) {
+  const n = { id: newId(), title: title || '', body: body || '', color: 'yellow', pinned: false, createdAt: Date.now(), updatedAt: Date.now() };
+  S.notes[n.id] = n; saveNote(n); return n;
+}
+function openNote(kind, id) {
+  const isTask = kind === 'task';
+  const src = isTask ? S.tasks[id] : S.notes[id]; if (!src) return;
+  UI.noteEdit = { kind, id };
+  const color = isTask ? 'task' : (src.color || 'yellow');
+  const at = isTask ? src.noteAt : src.updatedAt;
+  $('#noteRoot').innerHTML = `<div class="overlay center" id="nOverlay"><div class="sheet-edit c-${color}" id="nSheet" role="dialog" aria-modal="true" aria-label="Sửa ghi chú">
+    ${isTask ? `<div class="ne-link">Ghi chú của việc · <button class="link" id="neOpenTask">Mở chi tiết việc</button></div><div class="ne-title">${esc(src.title)}</div>` : `<input class="ne-title" id="neTitle" value="${esc(src.title)}" placeholder="Tiêu đề" aria-label="Tiêu đề">`}
+    <textarea id="neBody" placeholder="Viết gì đó…" aria-label="Nội dung">${esc(isTask ? src.note : src.body)}</textarea>
+    <div class="ne-bar">
+      ${isTask ? '' : Object.entries(NCOLORS).map(([k, l]) => `<button class="sw c-${k}" data-color="${k}" aria-pressed="${color === k}" aria-label="Màu ${l}" title="${l}"></button>`).join('')}
+      ${isTask ? '' : `<button class="btn small ghost" id="nePin">${src.pinned ? 'Bỏ ghim' : 'Ghim lên đầu'}</button>`}
+      <span class="sp"></span><span class="meta" id="neMeta">${at ? 'Sửa lần cuối ' + new Date(at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : ''}</span>
+      ${isTask ? '' : `<button class="btn small ghost danger" id="neDel">Xoá</button>`}
+      <button class="btn small" id="neClose">Xong</button>
+    </div></div></div>`;
+  const ta = $('#neBody'); autosize(ta);
+  (isTask || src.title ? ta : $('#neTitle')).focus();
+}
+function autosize(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(Math.max(280, ta.scrollHeight + 4), window.innerHeight * 0.6) + 'px'; }
+function closeNote() {
+  const e = UI.noteEdit; UI.noteEdit = null;
+  if (e && e.kind === 'note') { const n = S.notes[e.id]; if (n && !n.title.trim() && !n.body.trim()) { delete S.notes[e.id]; Store.save('note', e.id, null); } }
+  $('#noteRoot').innerHTML = ''; if (UI.tab === 'notes') $('#view').innerHTML = viewNotes();
+}
+
+/* ---------- stats ---------- */
+function median(a) { const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+function viewStats() {
+  const days = [...Array(7)].map((_, i) => dayStr(daysAgo(6 - i)));
+  const vals = days.map(d => (S.days[d] ? S.days[d].sessions.filter(s => s.done).length : 0));
+  const max = Math.max(4, ...vals);
+  const wd = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+  let h = `<div class="grid2"><div class="card"><h3>Phiên tập trung trọn vẹn, 7 ngày</h3>
+    <div class="dcols" role="img" aria-label="Số phiên trọn vẹn 7 ngày: ${vals.join(', ')}">${days.map((d, i) => `<div class="dcol${i === 6 ? ' today' : ''}"><span class="v">${vals[i]}</span><div class="stack">${Array.from({ length: Math.min(max, 16) }, (_, k) => `<i class="${k < vals[i] ? 'on' : ''}"></i>`).join('')}</div><span class="d">${i === 6 ? 'Nay' : wd[new Date(d + 'T00:00').getDay()]}</span></div>`).join('')}</div>
+    <p class="note">Mỗi ô vuông là một phiên tập trung trọn vẹn${max > 16 ? ' (cột hiển thị tối đa 16 ô, con số phía trên là số thật)' : ''}. Tổng ${vals.reduce((a, b) => a + b, 0)} phiên, tính cả các ngày không mở ứng dụng (0).</p></div>`;
+  const reasons = {};
+  let broken = 0, total = 0;
+  Object.values(S.days).filter(d => d.date >= dayStr(daysAgo(29))).forEach(d => d.sessions.forEach(s => { total++; if (!s.done && s.reason && s.reason !== 'Chuyển việc' && s.reason !== 'Hoàn thành sớm' && s.reason !== 'Tạm gác') { broken++; reasons[s.reason] = (reasons[s.reason] || 0) + 1; } }));
+  const rs = Object.entries(reasons).sort((a, b) => b[1] - a[1]);
+  h += `<div class="card"><h3>Lý do bị ngắt, 30 ngày</h3>${rs.length ? `<div class="tbl-wrap"><table><thead><tr><th>Lý do</th><th class="num">Lần</th></tr></thead><tbody>${rs.map(([r, n]) => `<tr><td>${esc(r)}</td><td class="num">${n}</td></tr>`).join('')}</tbody></table></div><p class="note">${broken} trên ${total} phiên bị dừng giữa chừng.</p>` : `<p class="note">Chưa có phiên nào bị dừng giữa chừng. Khi bạn bấm “Dừng phiên” và chọn lý do, thống kê sẽ hiện ở đây.</p>`}</div></div>`;
+  const done = Object.values(S.tasks).filter(t => t.status === 'done' && t.est > 0 && t.spentMs > 0);
+  const groups = {};
+  done.forEach(t => { const g = t.tag || '(không tag)'; (groups[g] = groups[g] || []).push(t.spentMs / estMs(t)); });
+  const rows = Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+  const allR = done.map(t => t.spentMs / estMs(t));
+  h += `<div class="card"><h3>Độ chính xác ước lượng</h3>
+    <p class="note">Tỉ lệ = thời gian thực làm ÷ thời gian dự kiến, chỉ tính việc đã xong có ước lượng. 1.0× là đúng dự kiến, trên 1 là làm lâu hơn. Nhóm dưới 10 việc được đánh dấu vì mẫu còn nhỏ, chưa nên dựa vào để kết luận.</p>
+    ${rows.length ? `<div class="tbl-wrap"><table><thead><tr><th>Tag</th><th class="num">Số việc</th><th class="num">Trung vị</th><th class="num">Trong khoảng ±20%</th></tr></thead><tbody>
+      ${rows.map(([g, a]) => `<tr><td>${esc(g)}${a.length < 10 ? ' <span class="lowdata">· mẫu nhỏ</span>' : ''}</td><td class="num">${a.length}</td><td class="num">${median(a).toFixed(2)}×</td><td class="num">${Math.round(a.filter(r => r >= 0.8 && r <= 1.2).length / a.length * 100)}%</td></tr>`).join('')}
+      <tr><td><strong>Tất cả</strong>${allR.length < 10 ? ' <span class="lowdata">· mẫu nhỏ</span>' : ''}</td><td class="num">${allR.length}</td><td class="num">${median(allR).toFixed(2)}×</td><td class="num">${Math.round(allR.filter(r => r >= 0.8 && r <= 1.2).length / allR.length * 100)}%</td></tr>
+    </tbody></table></div>` : `<p class="note">Chưa có việc nào vừa có ước lượng vừa đã xong.</p>`}</div>`;
+  const logs = [];
+  Object.values(S.tasks).forEach(t => (t.log || []).forEach(l => logs.push({ ...l, title: t.title })));
+  logs.sort((a, b) => b.at - a.at);
+  h += `<div class="card"><h3>Bạn đã xử lý lời nhắc quá giờ thế nào</h3>${logs.length ? `<div class="tbl-wrap"><table><thead><tr><th>Việc</th><th>Lựa chọn</th><th class="num">Lúc đó</th></tr></thead><tbody>${logs.slice(0, 12).map(l => `<tr><td>${esc(l.title)}</td><td>${esc(l.action)}</td><td class="num">${l.pct}%</td></tr>`).join('')}</tbody></table></div>` : '<p class="note">Chưa có lời nhắc nào.</p>'}</div>`;
+  return h;
+}
+
+/* ---------- settings ---------- */
+function viewSettings() {
+  const st = S.settings;
+  const num = (id, label, v, min, max) => `<div><label class="field-label" for="${id}">${label}</label><input type="number" id="${id}" value="${v}" min="${min}" max="${max}" data-set="${id.replace('set-', '')}"></div>`;
+  const hidden = (st.hiddenQuotes || []).length;
+  return `<div class="card"><h3>Đồng hồ</h3><div class="set-grid">
+      ${num('set-focus', 'Tập trung (phút)', st.focus, 1, 120)}${num('set-short', 'Nghỉ ngắn (phút)', st.short, 1, 60)}${num('set-long', 'Nghỉ dài (phút)', st.long, 1, 90)}
+      ${num('set-longEvery', 'Nghỉ dài sau mỗi (phiên)', st.longEvery, 2, 10)}${num('set-budget', 'Quỹ phiên mỗi ngày', st.budget, 1, 24)}${num('set-staleDays', 'Coi là treo lâu sau (ngày)', st.staleDays, 1, 60)}${num('set-urgentDays', 'Khẩn cấp khi hạn còn ≤ (ngày)', st.urgentDays, 0, 14)}
+    </div>
+    <label class="check"><input type="checkbox" id="set-autoBreak"${st.autoBreak ? ' checked' : ''}> Tự bắt đầu giờ nghỉ khi hết phiên tập trung</label>
+    <label class="check"><input type="checkbox" id="set-sound"${st.sound ? ' checked' : ''}> Phát chuông khi hết giờ và khi nhắc</label>
+    <p class="note">Đổi thời lượng phiên chỉ áp dụng cho việc tạo hoặc ước lượng lại sau này; việc cũ giữ nguyên độ dài phiên lúc ước lượng để phép so sánh không bị lệch.</p></div>
+  <div class="card"><h3>Câu trích dẫn</h3>
+    <p class="note">Hiện khi mở ứng dụng, lúc bắt đầu nghỉ, khi xong một việc và kèm lời nhắc quá giờ. Không bao giờ hiện trong lúc đang tập trung.</p>
+    <div class="chips">${Object.entries(THEMES).map(([k, l]) => `<label class="check chip"><input type="checkbox" data-theme-k="${k}"${st.themes.includes(k) ? ' checked' : ''}> ${l}</label>`).join('')}</div>
+    <form id="addQuote" class="add" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto">
+      <div><label class="field-label" for="qText">Thêm câu của bạn</label><input type="text" id="qText" placeholder="Nội dung" required></div>
+      <div><label class="field-label" for="qBy">Tác giả</label><input type="text" id="qBy" placeholder="Không bắt buộc"></div>
+      <button class="btn" type="submit">Thêm</button></form>
+    ${(st.customQuotes || []).length ? `<ul class="qlist">${st.customQuotes.map(q => `<li><span>“${esc(q.t)}”${q.by ? ' — ' + esc(q.by) : ''}</span><button class="btn small ghost" data-delq="${esc(q.id)}">Xoá</button></li>`).join('')}</ul>` : ''}
+    ${hidden ? `<div><button class="link" id="unhideQ">Hiện lại ${hidden} câu đã ẩn</button></div>` : ''}</div>
+  <div class="card"><h3>Lưu trữ</h3><p class="note">${Store.kind === 'fb' ? `Đã đăng nhập bằng <b>${esc(Store.fbUser && Store.fbUser.email)}</b>. Dữ liệu đồng bộ trên mọi thiết bị đăng nhập cùng tài khoản; khi quay lại tab, app tự tải thay đổi từ thiết bị khác.` : Store.kind === 'db' ? 'Dữ liệu lưu riêng trong tài khoản Claude của bạn, mở trên máy khác vẫn thấy. Người khác mở trang này không đọc được dữ liệu của bạn.' : Store.kind === 'local' ? 'Dữ liệu đang lưu trong trình duyệt này. Mở trên máy khác sẽ không thấy.' : 'Không lưu được ở đây, dữ liệu sẽ mất khi đóng trang.'}</p>
+    ${Store.kind === 'fb' ? '<div><button class="btn small" id="btnSignOut">Đăng xuất</button></div>' : ''}
+    <p class="note">Đồng hồ tính theo mốc thời gian bắt đầu, nên chuyển tab hay khoá máy không làm lệch giờ. Khi trang chạy nền, trình duyệt có thể báo hết phiên trễ vài giây đến một phút.</p></div>
+  <div class="card"><h3>Sao lưu và chuyển dữ liệu</h3>
+    <p class="note">Xuất toàn bộ việc, ghi chú, lịch sử phiên và cài đặt thành một đoạn văn bản. Dán đoạn đó vào ô bên dưới ở bản khác của app để chuyển dữ liệu sang.</p>
+    <div class="ctrls"><button class="btn" id="btnExport">Xuất dữ liệu</button><button class="btn" id="btnCopyExport" hidden>Sao chép</button></div>
+    <textarea id="exportBox" rows="5" readonly hidden aria-label="Dữ liệu đã xuất"></textarea>
+    <label class="field-label" for="importBox" style="margin-top:6px">Nhập dữ liệu</label>
+    <textarea id="importBox" rows="4" placeholder="Dán đoạn dữ liệu đã xuất vào đây"></textarea>
+    <div class="ctrls"><button class="btn" id="btnImport">Nhập vào bản này</button></div>
+    <p class="note">Nhập sẽ gộp dữ liệu: việc và ghi chú trùng mã được thay bằng bản nhập, phần còn lại giữ nguyên. Cài đặt được thay bằng cài đặt trong bản nhập.</p></div>`;
+}
+
+/* ---------- drawer (task detail) ---------- */
+let drawerId = '';
+function openDrawer(id, focus) {
+  const t = S.tasks[id]; if (!t) return; drawerId = id;
+  const root = $('#drawerRoot');
+  root.innerHTML = `<div class="overlay" id="overlay"><div class="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+    <div class="head"><span class="field-label" style="margin:0">Chi tiết việc</span><button class="btn small ghost" id="dClose">Đóng</button></div>
+    <input type="text" id="dTitle" value="${esc(t.title)}" style="font:700 19px/1.3 var(--f-display)">
+    <div class="row2">
+      <div><label class="field-label" for="dEst">Dự kiến (phiên ${t.pomoMin || S.settings.focus}′)</label><input type="number" id="dEst" min="0" max="40" value="${t.est || 0}"></div>
+
+      ${qField('dQ', 'd', quadOf(t))}
+      <div class="qhint" id="dQHint" style="grid-column:1/-1"${t.due ? '' : ' hidden'}>${t.due ? `Tình trạng khẩn cấp đang tính theo hạn chót ${fmtDue(t.due)} (khẩn cấp khi còn ≤ ${S.settings.urgentDays} ngày).` : ''}</div>
+      <div><label class="field-label" for="dTag">Tag</label><input type="text" id="dTag" value="${esc(t.tag)}"></div>
+      <div><label class="field-label" for="dDue">Hạn chót</label><input type="date" id="dDue" value="${esc(t.due)}"></div>
+    </div>
+    <div class="task-progress">Đã làm ${fmtMin(liveSpent(t))} (${(liveSpent(t) / pomoMs(t)).toFixed(1)} phiên)${t.startedAt ? ` · bắt đầu ${new Date(t.startedAt).toLocaleDateString('vi-VN')}` : ''}</div>
+    <div><span class="field-label">Các bước nhỏ</span><ul class="subs" id="dSubs"></ul>
+      <form id="dSubForm" style="display:flex;gap:6px;margin-top:6px"><input type="text" id="dSubInput" placeholder="Thêm bước, ví dụ: phác dàn ý" autocomplete="off"><button class="btn small" type="submit">Thêm</button></form></div>
+    <div><label class="field-label" for="dNote">Ghi chú của việc</label><textarea id="dNote" rows="8" placeholder="Link, ý tưởng, kết quả…">${esc(t.note)}</textarea></div>
+    ${(t.log || []).length ? `<div><span class="field-label">Lịch sử nhắc quá giờ</span><ul class="log">${t.log.map(l => `<li>${new Date(l.at).toLocaleDateString('vi-VN')} · ở mức ${l.pct}% · ${esc(l.action)}</li>`).join('')}</ul></div>` : ''}
+    <div class="ctrls"><button class="btn small danger" id="dDel">Xoá việc</button></div>
+  </div></div>`;
+  renderSubs();
+  (focus === 'subs' ? $('#dSubInput') : $('#dTitle')).focus();
+}
+function renderSubs() {
+  const t = S.tasks[drawerId]; if (!t) return;
+  $('#dSubs').innerHTML = (t.subtasks || []).map(s => `<li class="${s.done ? 'done' : ''}" data-sid="${esc(s.id)}"><input type="checkbox" data-sub="toggle"${s.done ? ' checked' : ''} aria-label="Xong bước này"><input type="text" data-sub="text" value="${esc(s.t)}" aria-label="Tên bước"><button class="btn small ghost" data-sub="del">Xoá</button></li>`).join('');
+}
+function closeDrawer() { $('#drawerRoot').innerHTML = ''; drawerId = ''; renderView(); }
+
+/* ---------- view dispatch ---------- */
+function renderTabs() {
+  $$('.tab').forEach(b => {
+    b.setAttribute('aria-selected', String(b.dataset.tab === UI.tab));
+    if (b.dataset.tab === 'today') { const n = Object.values(S.tasks).filter(t => t.today && t.status !== 'done').length; b.innerHTML = `Hôm nay${n ? `<span class="count">${n}</span>` : ''}`; }
+  });
+}
+function renderView() {
+  const v = $('#view');
+  // keep note editor focus when re-rendering unrelated parts
+  if (UI.tab === 'notes' && v.contains(document.activeElement) && document.activeElement.matches('#noteSearch')) return;
+  if (v.contains(document.activeElement) && document.activeElement.matches('#addTitle,#addTag,#qText,#qBy,input[type=number]')) { refreshLists(); return; }
+  const f = { today: viewToday, all: viewAll, notes: viewNotes, matrix: viewMatrix, stats: viewStats, settings: viewSettings }[UI.tab] || viewToday;
+  v.innerHTML = f();
+}
+function refreshLists() {
+  renderHello();
+  // update only task lists in place (to keep form input focus)
+  if (UI.tab !== 'today' && UI.tab !== 'all') { if (UI.tab === 'matrix') $('#view').innerHTML = viewMatrix(); return; }
+  const tmp = document.createElement('div'); tmp.innerHTML = UI.tab === 'today' ? viewToday() : viewAll();
+  const cur = $$('#view .list'), nxt = $$('.list', tmp);
+  cur.forEach((ul, i) => { if (nxt[i]) ul.innerHTML = nxt[i].innerHTML; });
+  const b = $('#view .budget'), nb = $('.budget', tmp); if (b && nb) b.innerHTML = nb.innerHTML;
+  const hs = $$('#view h3.sub'), nhs = $$('h3.sub', tmp);
+  if (hs.length !== nhs.length || cur.length !== nxt.length) { $('#view').replaceChildren(...tmp.childNodes); return; }
+  hs.forEach((h, i) => { h.textContent = nhs[i].textContent; });
+}
+function renderHello() {
+  const el = $('#hello'); if (!el) return;
+  const h = new Date().getHours();
+  const greet = h < 11 ? 'Chào buổi sáng' : h < 14 ? 'Chào buổi trưa' : h < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
+  const dn = Store.fbUser && Store.fbUser.displayName ? Store.fbUser.displayName.trim().split(/\s+/).pop() : '';
+  const today = sortTasks(openTasks().filter(t => t.today));
+  const left = today.reduce((s, t) => s + Math.max(0, (t.est || 0) - liveSpent(t) / pomoMs(t)), 0);
+  const d = S.days[dayStr()], done = d ? d.sessions.filter(x => x.done).length : 0, budget = S.settings.budget;
+  const noEst = today.filter(t => !t.est).length, over = done + left - budget;
+  const notes = [over > 0 ? `<span class="warn-t">Vượt quỹ ${over.toFixed(1)} phiên</span>` : '', noEst ? `<span>${noEst} việc chưa ước lượng</span>` : ''].filter(Boolean).join(' · ');
+  el.innerHTML = `<div class="hello-l"><h2>${greet}${dn ? ', ' + esc(dn) : ''}</h2><p>${today.length ? `<b>${today.length} việc</b> hôm nay · còn khoảng <b>${left.toFixed(1)} phiên</b>` : 'Chưa có việc nào cho hôm nay.'}</p></div>
+    <div class="hello-r"><div class="hb-top"><span><b>${done}</b>/${budget} phiên đã xong</span>${notes ? `<span class="hb-note">${notes}</span>` : ''}</div>${budgetDots(done, left, budget, true)}</div>`;
+}
+function budgetDots(done, left, budget, compact) {
+  const plan = Math.max(0, Math.ceil(left - 1e-9));
+  const total = Math.min(40, Math.max(budget, done + plan));
+  let d = '';
+  for (let i = 0; i < total; i++) {
+    const cls = i < done ? 'done' : i < done + plan ? 'plan' : '';
+    d += `<i class="${cls}${cls && i >= budget ? ' over' : ''}"></i>`;
+  }
+  const over = done + plan > budget;
+  const dotsHtml = `<div class="dots" role="img" title="Cam đậm: đã xong · Cam nhạt: còn theo dự kiến · Đỏ: vượt quỹ · Xám: quỹ còn trống" aria-label="Đã xong ${done} phiên, còn ${plan} phiên theo dự kiến, quỹ ${budget} phiên">${d}</div>`;
+  if (compact) return dotsHtml;
+  return `${dotsHtml}
+    <div class="dot-legend"><span><i style="background:var(--accent)"></i>Đã xong</span><span><i style="background:color-mix(in srgb,var(--accent) 28%,var(--surface));border:1px solid var(--accent)"></i>Còn theo dự kiến</span>${over ? '<span><i style="background:var(--tomato)"></i>Vượt quỹ</span>' : ''}<span><i style="background:var(--sunk);border:1px solid var(--line)"></i>Quỹ còn trống</span></div>`;
+}
+function renderAll() { renderHello(); renderTabs(); renderTimer(); renderAlert(); renderView(); }
+
+/* ---------- events ---------- */
+$('#btnMain').addEventListener('click', () => {
+  primeAudio();
+  const tm = S.timer;
+  if (!tm.running) startMode(tm.mode, $('#taskSel').value);
+  else togglePause();
+});
+$('#btnStop').addEventListener('click', () => {
+  const tm = S.timer;
+  if (!tm.running && isBreak(tm.mode)) { tm.mode = 'focus'; saveTimer(); renderTimer(); return; }
+  if (tm.mode === 'focus') { UI.stopOpen = true; renderTimer(); }
+  else endBreak(true);
+});
+$('#stopCancel').addEventListener('click', () => { UI.stopOpen = false; renderTimer(); });
+$('#reasonChips').addEventListener('click', e => { const b = e.target.closest('[data-reason]'); if (b) endFocus(false, b.dataset.reason); });
+$('#modes').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b || S.timer.running) return; S.timer.mode = b.dataset.mode; saveTimer(); renderTimer(); });
+$('#taskSel').addEventListener('change', e => { S.timer.taskId = e.target.value; saveTimer(); renderTimer(); renderView(); });
+$('#quoteArea').addEventListener('click', e => {
+  const b = e.target.closest('[data-q]'); if (!b) return;
+  if (b.dataset.q === 'hide' && UI.quote) { S.settings.hiddenQuotes = [...(S.settings.hiddenQuotes || []), UI.quote.id]; saveSettings(); }
+  pickQuote(); renderQuoteArea();
+});
+$('#alertBox').addEventListener('click', e => { const b = e.target.closest('[data-al]'); if (b) alertAction(b.dataset.al, +b.dataset.v); });
+$('#inboxForm').addEventListener('submit', e => {
+  e.preventDefault(); const i = $('#inboxInput'), v = i.value.trim(); if (!v) return;
+  S.inbox.push({ id: newId(), text: v, at: Date.now() }); saveInbox(); i.value = ''; renderInbox();
+  if (S.timer.running && S.timer.mode === 'focus') toast('Đã ghi lại. Quay về việc chính nhé.');
+});
+$('#inboxList').addEventListener('click', e => {
+  const b = e.target.closest('[data-ib]'); if (!b) return;
+  const id = b.closest('li').dataset.id, it = S.inbox.find(x => x.id === id); if (!it) return;
+  if (b.dataset.ib === 'task') { addTask({ title: it.text, est: 1 }); toast(`Đã thành việc: “${it.text}”. Nhớ đặt lại số phiên dự kiến.`); }
+  if (b.dataset.ib === 'note') { newNote('', it.text); toast('Đã chuyển thành ghi chú.'); }
+  S.inbox = S.inbox.filter(x => x.id !== id); saveInbox(); renderAll();
+});
+$('#tabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-tab]'); if (!b) return;
+  UI.tab = b.dataset.tab; try { localStorage.setItem('pomo.tab', UI.tab); } catch (err) {}
+  renderTabs(); $('#view').innerHTML = ''; renderView();
+});
+const view = $('#view');
+view.addEventListener('click', e => {
+  const el = e.target;
+  const qo = el.closest('[data-qopen="a"]'); if (qo) { toggleQMenu(qo, 'a', UI.addQ); return; }
+  const qp = el.closest('[data-qpick^="a:"]'); if (qp) { UI.addQ = +qp.dataset.qpick.split(':')[1]; refreshAddQ(); return; }
+  const qf = el.closest('[data-qf]'); if (qf) { UI.quadFilter = qf.dataset.qf; renderView(); return; }
+  const sq = el.closest('[data-setq]');
+  if (sq) { const t = S.tasks[sq.closest('[data-id]').dataset.id]; setQuadrant(t, +sq.dataset.setq); renderAll(); return; }
+  const sa = el.closest('[data-sact="del"]');
+  if (sa) {
+    const t = S.tasks[sa.closest('.task').dataset.id], sid = sa.closest('li').dataset.sid;
+    t.subtasks = (t.subtasks || []).filter(x => x.id !== sid); saveTask(t); renderAll(); return;
+  }
+  const act = el.closest('[data-act]');
+  if (act) {
+    const id = act.closest('[data-id]').dataset.id, t = S.tasks[id];
+    if (act.dataset.act === 'done') toggleDone(id);
+    else if (act.dataset.act === 'open') openDrawer(id);
+    else if (act.dataset.act === 'play') { primeAudio(); switchTaskAndStart(id); }
+    else if (act.dataset.act === 'today') { t.today = !t.today; saveTask(t); if (t.today && quadOf(t) === 4) toast(`“${t.title}” thuộc ô Bỏ bớt. Vẫn đưa vào hôm nay theo ý bạn.`); renderAll(); }
+    else if (act.dataset.act === 'quad') {
+      const host = act.closest('[data-id]'), had = host.querySelector('.qmenu');
+      $$('.qmenu').forEach(m => m.remove());
+      if (!had) { host.insertAdjacentHTML('beforeend', quadMenu(t)); const cur = host.querySelector('.qmenu [aria-current]') || host.querySelector('.qmenu button'); cur.focus(); }
+    }
+    return;
+  }
+  const step = el.closest('[data-step]');
+  if (step) { UI.addEst = Math.max(0, Math.min(16, UI.addEst + +step.dataset.step)); $('#addEst').textContent = UI.addEst ? `${UI.addEst} phiên` : 'Chưa rõ'; return; }
+  if (el.closest('#loadEx')) { loadExamples(); return; }
+  const f = el.closest('[data-filter]'); if (f) { UI.filter = f.dataset.filter; renderView(); return; }
+  if (el.closest('#newNoteCard')) { const n = newNote(); openNote('note', n.id); return; }
+  const nk = el.closest('[data-nkind]'); if (nk) { UI.noteKind = nk.dataset.nkind; view.innerHTML = viewNotes(); return; }
+  const nb = el.closest('[data-nid]'); if (nb) { openNote(nb.dataset.nk, nb.dataset.nid); return; }
+  const dq = el.closest('[data-delq]'); if (dq) { S.settings.customQuotes = S.settings.customQuotes.filter(q => q.id !== dq.dataset.delq); saveSettings(); renderView(); return; }
+  if (el.closest('#btnExport')) { const box = $('#exportBox'); box.value = exportData(); box.hidden = false; $('#btnCopyExport').hidden = false; box.select(); return; }
+  if (el.closest('#btnCopyExport')) {
+    const box = $('#exportBox');
+    Promise.resolve().then(() => navigator.clipboard.writeText(box.value)).then(() => toast('Đã sao chép. Mở bản kia, vào Cài đặt và dán vào ô “Nhập dữ liệu”.'), () => { box.select(); toast('Không sao chép tự động được. Đoạn dữ liệu đã được chọn sẵn, bấm Ctrl+C để sao chép.'); });
+    return;
+  }
+  if (el.closest('#btnImport')) {
+    try { const n = importData($('#importBox').value.trim()); toast(`Đã nhập ${n.tasks} việc, ${n.notes} ghi chú, lịch sử ${n.days} ngày.`); renderAll(); }
+    catch (err) { toast(err.message); }
+    return;
+  }
+  if (el.closest('#btnSignOut')) { firebase.auth().signOut().then(() => location.reload()); return; }
+  if (el.closest('#unhideQ')) { S.settings.hiddenQuotes = []; saveSettings(); renderView(); }
+});
+document.addEventListener('click', e => { if (!e.target.closest('.qmenu,[data-act="quad"],[data-qopen]')) $$('.qmenu').forEach(m => m.remove()); });
+view.addEventListener('dragstart', e => { const li = e.target.closest('.mitem'); if (!li) return; e.dataTransfer.setData('text/plain', li.dataset.id); e.dataTransfer.effectAllowed = 'move'; li.classList.add('dragging'); });
+view.addEventListener('dragend', e => { const li = e.target.closest('.mitem'); if (li) li.classList.remove('dragging'); $$('.mcell.over').forEach(c => c.classList.remove('over')); });
+view.addEventListener('dragover', e => { const c = e.target.closest('.mcell'); if (!c) return; e.preventDefault(); $$('.mcell.over').forEach(x => x !== c && x.classList.remove('over')); c.classList.add('over'); });
+view.addEventListener('drop', e => {
+  const c = e.target.closest('.mcell'); if (!c) return; e.preventDefault();
+  const t = S.tasks[e.dataTransfer.getData('text/plain')]; if (!t) return;
+  if (quadOf(t) !== +c.dataset.q) setQuadrant(t, +c.dataset.q);
+  renderAll();
+});
+view.addEventListener('submit', e => {
+  e.preventDefault();
+  if (e.target.classList.contains('madd')) {
+    const q = +e.target.dataset.q, inp = e.target.querySelector('input'), v = inp.value.trim(); if (!v) return;
+    const t = addTask({ title: v, est: UI.addEst, important: q <= 2, urgentManual: q === 1 || q === 3 });
+    renderAll(); const again = $(`#view .madd[data-q="${q}"] input`); if (again) again.focus();
+    return;
+  }
+  if (e.target.classList.contains('sadd')) {
+    const tid = e.target.dataset.tid, t = S.tasks[tid], inp = e.target.querySelector('input'), v = inp.value.trim();
+    if (!t || !v) return;
+    t.subtasks = [...(t.subtasks || []), { id: newId(), t: v, done: false }]; saveTask(t);
+    renderAll();
+    const again = $(`#view .sadd[data-tid="${CSS.escape(tid)}"] input`); if (again) again.focus();
+    return;
+  }
+  if (e.target.id === 'addForm') {
+    const title = $('#addTitle').value.trim(); if (!title) return;
+    const t = addTask({ title, est: UI.addEst, tag: $('#addTag').value, important: UI.addQ ? UI.addQ <= 2 : null, urgentManual: UI.addQ === 1 || UI.addQ === 3, due: $('#addDue').value, today: $('#addToday').checked });
+    $('#addTitle').value = ''; $('#addDue').value = ''; refreshAddQ();
+    if (UI.addQ && t.q !== UI.addQ) toast(`“${t.title}” vào ${qLabel(t.q)} vì hạn chót.`);
+    if (UI.tab === 'today' && !t.today) toast('Đã thêm vào “Tất cả việc”.');
+    renderHello(); renderTabs(); renderTimer(); refreshLists(); $('#addTitle').focus();
+    if (Object.keys(S.tasks).length === 1) { view.innerHTML = ''; renderView(); }
+  }
+  if (e.target.id === 'addQuote') {
+    const t = $('#qText').value.trim(); if (!t) return;
+    S.settings.customQuotes = [...(S.settings.customQuotes || []), { id: 'c' + newId(), t, by: $('#qBy').value.trim() }];
+    saveSettings(); $('#qText').value = ''; $('#qBy').value = ''; view.innerHTML = viewSettings();
+  }
+});
+view.addEventListener('input', e => {
+  const el = e.target;
+  if (el.id === 'noteSearch') { UI.noteQuery = el.value; $('#board').innerHTML = boardHtml(); }
+});
+view.addEventListener('change', e => {
+  const el = e.target;
+  if (el.dataset.sact === 'toggle') {
+    const t = S.tasks[el.closest('.task').dataset.id], sub = (t.subtasks || []).find(x => x.id === el.closest('li').dataset.sid);
+    if (!sub) return;
+    sub.done = el.checked; saveTask(t);
+    if (subProgress(t) === 100 && t.status !== 'done') toast(`Đã xong mọi bước của “${t.title}”. Bấm vòng tròn bên trái để đánh dấu hoàn thành.`);
+    renderAll(); return;
+  }
+  if (el.id === 'tagFilter') { UI.tagFilter = el.value; renderView(); return; }
+  if (el.id === 'addDue') { refreshAddQ(); return; }
+  if (el.dataset.set) {
+    const v = Math.round(+el.value); const min = +el.min, max = +el.max;
+    if (!Number.isFinite(v) || v < min || v > max) { el.value = S.settings[el.dataset.set]; toast(`Giá trị phải từ ${min} đến ${max}.`); return; }
+    S.settings[el.dataset.set] = v; saveSettings(); if (el.dataset.set === 'urgentDays') trackQuadrants(); renderTimer(); return;
+  }
+  if (el.id === 'set-autoBreak' || el.id === 'set-sound') { S.settings[el.id.slice(4)] = el.checked; saveSettings(); return; }
+  if (el.dataset.themeK) {
+    const k = el.dataset.themeK, th = new Set(S.settings.themes); el.checked ? th.add(k) : th.delete(k);
+    S.settings.themes = [...th]; saveSettings(); return;
+  }
+});
+// drawer events
+const dr = $('#drawerRoot');
+dr.addEventListener('click', e => {
+  const t = S.tasks[drawerId]; if (!t) return;
+  if (e.target.id === 'overlay' || e.target.id === 'dClose') { closeDrawer(); return; }
+  const qo = e.target.closest('[data-qopen="d"]'); if (qo) { toggleQMenu(qo, 'd', quadOf(t)); return; }
+  const qp = e.target.closest('[data-qpick^="d:"]'); if (qp) { setQuadrant(t, +qp.dataset.qpick.split(':')[1]); refreshDrawerQ(t); renderTimer(); return; }
+  if (e.target.id === 'dDel') {
+    const btn = e.target;
+    if (btn.dataset.armed) deleteTask(t.id);
+    else { btn.dataset.armed = '1'; btn.textContent = 'Bấm lần nữa để xoá hẳn'; setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = 'Xoá việc'; } }, 4000); }
+    return;
+  }
+  const s = e.target.closest('[data-sub]'); if (!s) return;
+  const li = s.closest('li'), sub = t.subtasks.find(x => x.id === li.dataset.sid);
+  if (s.dataset.sub === 'toggle') { sub.done = s.checked; li.classList.toggle('done', sub.done); saveTask(t); }
+  if (s.dataset.sub === 'del') { t.subtasks = t.subtasks.filter(x => x !== sub); saveTask(t); renderSubs(); }
+});
+dr.addEventListener('submit', e => {
+  e.preventDefault(); const t = S.tasks[drawerId]; if (!t) return;
+  const i = $('#dSubInput'), v = i.value.trim(); if (!v) return;
+  t.subtasks = [...(t.subtasks || []), { id: newId(), t: v, done: false }]; saveTask(t); i.value = ''; renderSubs(); i.focus();
+});
+dr.addEventListener('input', e => {
+  const t = S.tasks[drawerId]; if (!t) return; const el = e.target;
+  if (el.id === 'dTitle') { t.title = el.value; saveTaskSoon(t); }
+  else if (el.id === 'dNote') { t.note = el.value; t.noteAt = Date.now(); saveTaskSoon(t); }
+  else if (el.dataset.sub === 'text') { const sub = t.subtasks.find(x => x.id === el.closest('li').dataset.sid); if (sub) { sub.t = el.value; saveTaskSoon(t); } }
+});
+dr.addEventListener('change', e => {
+  const t = S.tasks[drawerId]; if (!t) return; const el = e.target;
+  if (el.id === 'dEst') { const v = Math.max(0, Math.min(40, Math.round(+el.value || 0))); if (v !== t.est) { t.est = v; t.pomoMin = S.settings.focus; resetAlerts(t); } }
+  else if (el.id === 'dTag') t.tag = el.value.trim();
+  else if (el.id === 'dDue') { t.due = el.value; refreshDrawerQ(t); }
+  else return;
+  t.q = quadOf(t); saveTask(t); renderTimer();
+});
+const nr = $('#noteRoot');
+nr.addEventListener('click', e => {
+  const ed = UI.noteEdit; if (!ed) return;
+  const el = e.target;
+  if (el.id === 'nOverlay' || el.id === 'neClose') { closeNote(); return; }
+  if (el.id === 'neOpenTask') { const id = ed.id; closeNote(); openDrawer(id); return; }
+  const n = S.notes[ed.id]; if (!n) return;
+  const sw = el.closest('[data-color]');
+  if (sw) { n.color = sw.dataset.color; saveNote(n); $('#nSheet').className = `sheet-edit c-${n.color}`; $$('.sw', nr).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.color === n.color))); return; }
+  if (el.id === 'nePin') { n.pinned = !n.pinned; saveNote(n); el.textContent = n.pinned ? 'Bỏ ghim' : 'Ghim lên đầu'; return; }
+  if (el.id === 'neDel') {
+    if (el.dataset.armed) { delete S.notes[n.id]; Store.save('note', n.id, null); UI.noteEdit = null; closeNote(); toast('Đã xoá tờ ghi chú.'); }
+    else { el.dataset.armed = '1'; el.textContent = 'Bấm lần nữa để xoá'; setTimeout(() => { if (el.isConnected) { delete el.dataset.armed; el.textContent = 'Xoá'; } }, 4000); }
+  }
+});
+nr.addEventListener('input', e => {
+  const ed = UI.noteEdit; if (!ed) return; const el = e.target;
+  if (el.id === 'neBody') autosize(el);
+  if (ed.kind === 'task') {
+    const t = S.tasks[ed.id]; if (!t || el.id !== 'neBody') return;
+    t.note = el.value; t.noteAt = Date.now(); saveTaskSoon(t);
+  } else {
+    const n = S.notes[ed.id]; if (!n) return;
+    if (el.id === 'neTitle') n.title = el.value; else if (el.id === 'neBody') n.body = el.value; else return;
+    n.updatedAt = Date.now(); saveNoteSoon(n);
+  }
+  $('#neMeta').textContent = 'Đang lưu tự động';
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('.qmenu')) { $$('.qmenu').forEach(m => m.remove()); return; }
+  if (e.key === 'Escape' && UI.noteEdit) { closeNote(); return; }
+  if (e.key === 'Escape' && drawerId) { closeDrawer(); return; }
+  if (e.code === 'Space' && !e.target.closest('input,textarea,select,button') && !drawerId && !UI.noteEdit) { e.preventDefault(); $('#btnMain').click(); }
+});
+
+/* ---------- sign-in screen (Vercel build only) ---------- */
+function showLogin(auth, msg) {
+  return new Promise(resolve => {
+    const root = $('#loginRoot');
+    root.innerHTML = `<div class="overlay center login-ov"><div class="login-card" role="dialog" aria-modal="true" aria-labelledby="lgH">
+      <h2 id="lgH">Phiên Làm Việc</h2>
+      <p>Đăng nhập để việc, ghi chú và lịch sử phiên được đồng bộ trên mọi thiết bị của bạn.</p>
+      <button class="btn primary solid" id="lgBtn">Đăng nhập bằng Google</button>
+      <p class="lg-msg" id="lgMsg">${esc(msg || '')}</p></div></div>`;
+    const btn = $('#lgBtn'), out = $('#lgMsg');
+    btn.addEventListener('click', async () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      btn.disabled = true; out.textContent = '';
+      try { const r = await auth.signInWithPopup(provider); resolve(r.user); }
+      catch (e) {
+        btn.disabled = false;
+        const c = e && e.code;
+        if (c === 'auth/popup-blocked' || c === 'auth/operation-not-supported-in-this-environment') { out.textContent = 'Trình duyệt chặn cửa sổ đăng nhập, đang chuyển trang…'; auth.signInWithRedirect(provider); }
+        else if (c === 'auth/unauthorized-domain') out.textContent = `Tên miền ${location.hostname} chưa được thêm vào Firebase. Vào Authentication → Settings → Authorized domains để thêm.`;
+        else if (c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request') out.textContent = 'Bạn đã đóng cửa sổ đăng nhập. Bấm lại để thử lần nữa.';
+        else out.textContent = 'Chưa đăng nhập được: ' + (e && e.message ? e.message : 'lỗi không rõ');
+      }
+    });
+  });
+}
+function hideLogin() { const r = $('#loginRoot'); if (r) r.innerHTML = ''; }
+
+/* ---------- backup: export / import ---------- */
+function exportData() {
+  return JSON.stringify({ app: 'phien-lam-viec', v: 1, at: new Date().toISOString(), tasks: S.tasks, notes: S.notes, inbox: S.inbox, settings: S.settings, days: S.days });
+}
+function importData(txt) {
+  let o;
+  try { o = JSON.parse(txt); } catch (e) { throw new Error('Đoạn dán vào không đúng định dạng. Hãy sao chép lại toàn bộ đoạn đã xuất.'); }
+  if (!o || o.app !== 'phien-lam-viec') throw new Error('Đây không phải dữ liệu xuất từ Phiên Làm Việc.');
+  let n = { tasks: 0, notes: 0, days: 0 };
+  Object.values(o.tasks || {}).forEach(t => { if (t && t.id) { S.tasks[t.id] = t; saveTask(t); n.tasks++; } });
+  Object.values(o.notes || {}).forEach(x => { if (x && x.id) { S.notes[x.id] = x; saveNote(x); n.notes++; } });
+  Object.entries(o.days || {}).forEach(([d, day]) => {
+    if (!day || !Array.isArray(day.sessions)) return;
+    const cur = S.days[d];
+    if (cur) { const seen = new Set(cur.sessions.map(s => s.start + ':' + s.taskId)); day.sessions.forEach(s => { if (!seen.has(s.start + ':' + s.taskId)) cur.sessions.push(s); }); }
+    else S.days[d] = { date: d, sessions: day.sessions };
+    Store.save('day', d, S.days[d]); n.days++;
+  });
+  if (Array.isArray(o.inbox)) { const ids = new Set(S.inbox.map(i => i.id)); o.inbox.forEach(i => { if (!ids.has(i.id)) S.inbox.push(i); }); saveInbox(); }
+  if (o.settings) { S.settings = Object.assign(clone(DEFAULT_SETTINGS), o.settings); saveSettings(); }
+  Object.values(S.tasks).forEach(t => { migrateTask(t); t.q = quadOf(t); });
+  return n;
+}
+
+/* ---------- pick up changes made on another device ---------- */
+async function refreshFromRemote() {
+  if (!Store.remote() || !Store.idle() || drawerId || UI.noteEdit) return;
+  const a = document.activeElement;
+  if (a && a.matches('input,textarea') && a.value) return;
+  try {
+    await Store.loadRemote();
+    Object.values(S.tasks).forEach(t => migrateTask(t));
+    renderAll();
+  } catch (e) { console.warn('refresh failed', e); }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshFromRemote(); });
+
+/* ---------- boot ---------- */
+async function boot() {
+  pickQuote();
+  renderAll();
+  await Store.init();
+  setSaved('ok');
+  Object.values(S.tasks).forEach(t => { if (migrateTask(t)) saveTask(t); });
+  trackQuadrants();
+  if (UI.quote) pickQuote();
+  // A timer that ran out while the page was closed: close it out once.
+  const tm = S.timer;
+  if (tm.running && !tm.pausedAt && remaining() <= 0) {
+    if (tm.mode === 'focus') { endFocus(true, '', true); toast('Phiên tập trung đã kết thúc trong lúc trang đóng và đã được ghi lại.'); }
+    else endBreak(true);
+  }
+  renderAll();
+  setInterval(() => tick(false), 250);
+  setInterval(() => { trackQuadrants(); }, 60000);
+}
+boot();
+})();
+</script>
+</body>
+</html>
